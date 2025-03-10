@@ -1,29 +1,30 @@
 
-import * as React from "react"
-import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
+import React from "react";
+import { Switch, SwitchProps } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
-interface CustomSwitchProps extends React.ComponentPropsWithoutRef<typeof Switch> {
-  size?: 'default' | 'sm' | 'lg'
-}
-
-const sizeClasses = {
-  default: "h-6 w-11",
-  sm: "h-5 w-9",
-  lg: "h-7 w-14"
+interface CustomSwitchProps extends Omit<SwitchProps, "size"> {
+  size?: "default" | "sm" | "lg";
 }
 
 const CustomSwitch = React.forwardRef<HTMLButtonElement, CustomSwitchProps>(
-  ({ className, size = 'default', ...props }, ref) => {
+  ({ size = "default", className, ...props }, ref) => {
+    const sizeClasses = {
+      sm: "h-3 w-6",
+      default: "h-5 w-10",
+      lg: "h-6 w-12",
+    };
+
     return (
       <Switch
-        className={cn(size && sizeClasses[size], className)}
         ref={ref}
+        className={cn(sizeClasses[size], className)}
         {...props}
       />
-    )
+    );
   }
-)
-CustomSwitch.displayName = "CustomSwitch"
+);
 
-export { CustomSwitch }
+CustomSwitch.displayName = "CustomSwitch";
+
+export { CustomSwitch };
