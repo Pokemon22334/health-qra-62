@@ -4,7 +4,7 @@ import { Pill, Calendar, Clock, CheckCircle, Circle, Info, PlusCircle, Settings 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
+import { CustomSwitch } from '@/components/ui/custom-switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -189,7 +189,7 @@ const MedicationTracker = () => {
                   
                   <div className="flex items-center">
                     <span className="text-xs text-gray-500 mr-2">Reminders</span>
-                    <Switch
+                    <CustomSwitch
                       checked={medication.remindersEnabled}
                       onCheckedChange={() => handleToggleReminders(medication.id)}
                       size="sm"

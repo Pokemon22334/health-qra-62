@@ -1,9 +1,9 @@
 
 import React from "react";
-import { Switch, SwitchProps } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
-interface CustomSwitchProps extends Omit<SwitchProps, "size"> {
+interface CustomSwitchProps extends React.ComponentPropsWithoutRef<typeof Switch> {
   size?: "default" | "sm" | "lg";
 }
 

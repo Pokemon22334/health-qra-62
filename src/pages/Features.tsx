@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, Brain, CloudSync, FileText, Lock, ShieldCheck, Stethoscope, Clock, AlertCircle } from 'lucide-react';
+import { ArrowRight, Brain, CloudCog, FileText, Lock, ShieldCheck, Stethoscope, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
@@ -96,7 +96,7 @@ const Features = () => {
                 {
                   title: "Cloud Sync & Multi-Device",
                   description: "Access your health records from any device, with real-time synchronization across all your devices.",
-                  icon: CloudSync,
+                  icon: CloudCog,
                   iconColor: "text-teal-600",
                   iconBg: "bg-teal-100"
                 }
