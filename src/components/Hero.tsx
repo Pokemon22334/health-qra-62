@@ -37,7 +37,7 @@ const Hero = () => {
           
           <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in" style={{ animationDelay: '450ms' }}>
             <Button size="lg" className="button-hover-effect" asChild>
-              <Link to="/signup">
+              <Link to="/get-started">
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
