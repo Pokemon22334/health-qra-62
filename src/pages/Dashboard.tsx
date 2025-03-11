@@ -1,7 +1,7 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import RecordUpload from '@/components/dashboard/RecordUpload';
@@ -14,26 +14,53 @@ import {
   Calendar, 
   PillIcon, 
   QrCode,
-  Shield 
+  Shield,
+  Loader2
 } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('records');
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [pageLoading, setPageLoading] = useState(true);
 
-  // If not authenticated, redirect to login
-  if (!isLoading && !isAuthenticated) {
-    navigate('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to access your dashboard.",
+          variant: "destructive",
+        });
+        navigate('/login');
+      } else {
+        setPageLoading(false);
+      }
+    }
+  }, [isLoading, isAuthenticated, navigate, toast]);
 
   const handleUploadComplete = () => {
     setShowUploadForm(false);
     setRefreshTrigger(prev => prev + 1);
   };
+
+  if (isLoading || pageLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <NavBar />
+        <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-medivault-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading your dashboard...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -50,7 +77,6 @@ const Dashboard = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Sidebar */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="p-6 border-b border-gray-100">
@@ -141,7 +167,6 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Main Content */}
           <div className="lg:col-span-9">
             {showUploadForm ? (
               <RecordUpload onUploadComplete={handleUploadComplete} />

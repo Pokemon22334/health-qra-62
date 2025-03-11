@@ -31,6 +31,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error('Authentication error:', error);
+        // Clear any invalid auth state
+        localStorage.removeItem('medivault_auth_token');
+        localStorage.removeItem('medivault_current_user');
       } finally {
         setIsLoading(false);
       }

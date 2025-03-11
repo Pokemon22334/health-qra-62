@@ -8,8 +8,25 @@ const API_BASE_URL = 'https://api.medivault.example.com';
 // Mock JWT token storage
 let authToken: string | null = localStorage.getItem('medivault_auth_token');
 
-// Mock user session
+// Mock user session - initialize from localStorage if available
 let currentUser: User | null = null;
+
+// Initialize current user from localStorage if available
+const initializeUserFromStorage = () => {
+  const storedUser = localStorage.getItem('medivault_current_user');
+  if (storedUser) {
+    try {
+      currentUser = JSON.parse(storedUser);
+    } catch (error) {
+      console.error('Error parsing stored user:', error);
+      // Clear invalid data
+      localStorage.removeItem('medivault_current_user');
+    }
+  }
+};
+
+// Initialize user on load
+initializeUserFromStorage();
 
 // Types
 export interface User {
@@ -163,7 +180,9 @@ const handleAuthEndpoints = (endpoint: string, method: string, data?: any): any 
     authToken = `mock_token_${newUser.id}`;
     localStorage.setItem('medivault_auth_token', authToken);
     
+    // Store current user in localStorage for persistence
     currentUser = newUser;
+    localStorage.setItem('medivault_current_user', JSON.stringify(newUser));
     
     return { user: newUser, token: authToken };
   }
@@ -187,7 +206,9 @@ const handleAuthEndpoints = (endpoint: string, method: string, data?: any): any 
     authToken = `mock_token_${user.id}`;
     localStorage.setItem('medivault_auth_token', authToken);
     
+    // Store current user in localStorage for persistence
     currentUser = user;
+    localStorage.setItem('medivault_current_user', JSON.stringify(user));
     
     return { user, token: authToken };
   }
@@ -198,6 +219,12 @@ const handleAuthEndpoints = (endpoint: string, method: string, data?: any): any 
     
     // For demo purposes, accept any 6-digit code
     if (code.length === 6 && /^\d+$/.test(code)) {
+      // Get stored user from localStorage
+      const storedUser = localStorage.getItem('medivault_current_user');
+      if (storedUser) {
+        currentUser = JSON.parse(storedUser);
+      }
+      
       return { verified: true };
     }
     
@@ -209,6 +236,7 @@ const handleAuthEndpoints = (endpoint: string, method: string, data?: any): any 
     authToken = null;
     currentUser = null;
     localStorage.removeItem('medivault_auth_token');
+    localStorage.removeItem('medivault_current_user');
     return { success: true };
   }
   
@@ -218,7 +246,10 @@ const handleAuthEndpoints = (endpoint: string, method: string, data?: any): any 
 // Handler for health records endpoints
 const handleRecordsEndpoints = (endpoint: string, method: string, data?: any): any => {
   // Ensure the user is authenticated
-  if (!authToken) throw new Error('Unauthorized');
+  if (!authToken || !currentUser) {
+    console.error("Unauthorized: No auth token or current user", { authToken, currentUser });
+    throw new Error('Unauthorized');
+  }
   
   // Get records from our "database"
   const records = JSON.parse(localStorage.getItem('medivault_records') || '[]');
@@ -646,6 +677,12 @@ export const api = {
   // Health records methods
   getRecords: async () => {
     try {
+      // Check if user is authenticated before making request
+      if (!authToken || !currentUser) {
+        toast.error("You must be logged in to access records");
+        throw new Error('Unauthorized');
+      }
+      
       return await apiRequest('/records', 'GET');
     } catch (error: any) {
       toast.error(`Failed to fetch records: ${error.message}`);
@@ -841,8 +878,17 @@ export const api = {
   },
   
   // Current user
-  getCurrentUser: () => currentUser,
-  isAuthenticated: () => !!authToken
+  getCurrentUser: () => {
+    // If currentUser is null, try to get it from localStorage
+    if (!currentUser) {
+      initializeUserFromStorage();
+    }
+    return currentUser;
+  },
+  
+  isAuthenticated: () => {
+    return !!authToken && !!currentUser;
+  }
 };
 
 // Initialize with some demo data if none exists
