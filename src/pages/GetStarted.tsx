@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Shield, Lock, CloudCheck, ChevronRight } from "lucide-react";
+import { ArrowRight, Shield, Lock, CheckSquare, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
@@ -297,7 +297,7 @@ const GetStarted = () => {
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 }}
               >
-                <CloudCheck className="w-12 h-12 mx-auto text-blue-600 mb-4" />
+                <CheckSquare className="w-12 h-12 mx-auto text-blue-600 mb-4" />
                 <h3 className="font-bold text-xl mb-2">Cloud Backup & Access</h3>
                 <p className="text-gray-700">Access your medical data securely from any device, anywhere.</p>
               </motion.div>
