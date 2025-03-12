@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -13,11 +12,13 @@ import {
   Trash2, 
   Clock, 
   FileText,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 import { 
   getUserQRCodes, 
   revokeQRCode, 
+  restoreQRCode,
   generateShareableLink,
   formatExpirationTime
 } from '@/lib/utils/qrCode';
@@ -36,7 +37,6 @@ const QRCodeManager = () => {
   const [activeTab, setActiveTab] = useState('individual');
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Load user's QR codes
   useEffect(() => {
     if (!user) return;
     
@@ -44,7 +44,6 @@ const QRCodeManager = () => {
       try {
         setIsLoading(true);
         
-        // Load individual QR codes
         const individualCodes = await getUserQRCodes(user.id);
         setSingleQRCodes(individualCodes.map(qrCode => {
           const isExpired = new Date(qrCode.expires_at) < new Date();
@@ -59,7 +58,6 @@ const QRCodeManager = () => {
           };
         }));
         
-        // Load public QR codes
         const publicCodes = await getUserPublicQRCodes(user.id);
         setPublicQRCodes(publicCodes);
         
@@ -78,12 +76,10 @@ const QRCodeManager = () => {
     loadQRCodes();
   }, [user, toast, refreshKey]);
 
-  // Handle refreshing the QR code list
   const handleRefresh = () => {
     setRefreshKey(prevKey => prevKey + 1);
   };
 
-  // Delete a single record QR code
   const handleDeleteSingleQR = async (qrId: string) => {
     if (!user) return;
     
@@ -91,7 +87,6 @@ const QRCodeManager = () => {
       const result = await revokeQRCode(qrId, user.id);
       
       if (result) {
-        // Remove from the local state
         setSingleQRCodes(prev => prev.filter(qr => qr.id !== qrId));
         
         toast({
@@ -109,14 +104,43 @@ const QRCodeManager = () => {
     }
   };
 
-  // Delete a public QR code
+  const handleRestoreQR = async (qrId: string) => {
+    if (!user) return;
+    
+    try {
+      const result = await restoreQRCode(qrId, user.id, 24);
+      
+      if (result) {
+        setSingleQRCodes(prev => prev.map(qr => 
+          qr.id === qrId ? {
+            ...qr,
+            is_revoked: false,
+            expires_at: result.expires_at,
+            isExpired: false
+          } : qr
+        ));
+        
+        toast({
+          title: 'QR code restored',
+          description: 'The QR code has been successfully restored and will be valid for 24 hours.',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error restoring QR code:', error);
+      toast({
+        title: 'Failed to restore QR code',
+        description: error.message || 'An error occurred while restoring the QR code.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleDeletePublicQR = async (qrId: string) => {
     if (!user) return;
     
     try {
       await deletePublicQRCode(qrId, user.id);
       
-      // Remove from the local state
       setPublicQRCodes(prev => prev.filter(qr => qr.id !== qrId));
       
       toast({
@@ -133,7 +157,6 @@ const QRCodeManager = () => {
     }
   };
 
-  // Download QR code as image
   const handleDownloadQR = (qrImageUrl: string, label: string) => {
     const link = document.createElement('a');
     link.href = qrImageUrl;
@@ -143,7 +166,6 @@ const QRCodeManager = () => {
     document.body.removeChild(link);
   };
 
-  // Copy shareable link to clipboard
   const handleCopyLink = (shareableUrl: string) => {
     navigator.clipboard.writeText(shareableUrl);
     toast({
@@ -244,15 +266,27 @@ const QRCodeManager = () => {
                               Download
                             </Button>
                             
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleDeleteSingleQR(qr.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Delete
-                            </Button>
+                            {(qr.isExpired || qr.is_revoked) ? (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleRestoreQR(qr.id)}
+                                className="text-green-600"
+                              >
+                                <RotateCcw className="h-3 w-3 mr-1" />
+                                Restore
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleDeleteSingleQR(qr.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Delete
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>

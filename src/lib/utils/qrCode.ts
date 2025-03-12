@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 // Generate a QR code for a health record
@@ -215,6 +214,51 @@ export const revokeQRCode = async (qrId: string, userId: string) => {
     return true;
   } catch (error) {
     console.error('Error revoking/deleting QR code:', error);
+    throw error;
+  }
+};
+
+// Restore a previously revoked QR code or extend expiry
+export const restoreQRCode = async (qrId: string, userId: string, expiryHours: number = 24) => {
+  try {
+    // Check if the user owns this QR code
+    const { data: qrCode, error: qrError } = await supabase
+      .from('qr_codes')
+      .select('*')
+      .eq('id', qrId)
+      .eq('created_by', userId)
+      .maybeSingle();
+    
+    if (qrError || !qrCode) {
+      console.error('Error fetching QR code for restoration:', qrError);
+      throw new Error('QR code not found or you do not have permission to restore it');
+    }
+    
+    // Calculate new expiry time
+    const expiryDate = new Date();
+    expiryDate.setHours(expiryDate.getHours() + expiryHours);
+    
+    // Update the QR code to set is_revoked to false and update expiry
+    const { data, error: updateError } = await supabase
+      .from('qr_codes')
+      .update({
+        is_revoked: false,
+        expires_at: expiryDate.toISOString()
+      })
+      .eq('id', qrId)
+      .eq('created_by', userId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Error restoring QR code:', updateError);
+      throw updateError;
+    }
+    
+    console.log('QR code restored successfully:', qrId);
+    return data;
+  } catch (error) {
+    console.error('Error restoring QR code:', error);
     throw error;
   }
 };
