@@ -2,9 +2,10 @@
 import { supabase } from '@/lib/supabase';
 
 // Generate a public QR code for all user's health records
-export const generatePublicQRCode = async (userId: string, label?: string, expiryDays?: number) => {
+export const generatePublicQRCode = async (userId: string, label?: string, expiryDays?: number, specificRecordIds: string[] = []) => {
   try {
     console.log('Generating public QR code for user:', userId);
+    const hasSpecificRecords = specificRecordIds.length > 0;
     
     // Calculate expiry time if provided
     let expiresAt = null;
@@ -35,11 +36,28 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
     
     console.log('QR code created successfully:', qrCode);
     
-    // Get all health records for the user
-    const { data: records, error: recordsError } = await supabase
-      .from('health_records')
-      .select('id')
-      .eq('user_id', userId);
+    // Get health records for the user based on specific record IDs or all records
+    let records;
+    let recordsError;
+    
+    if (hasSpecificRecords) {
+      console.log('Fetching specific records:', specificRecordIds);
+      const { data, error } = await supabase
+        .from('health_records')
+        .select('id')
+        .eq('user_id', userId)
+        .in('id', specificRecordIds);
+      records = data;
+      recordsError = error;
+    } else {
+      console.log('Fetching all user records');
+      const { data, error } = await supabase
+        .from('health_records')
+        .select('id')
+        .eq('user_id', userId);
+      records = data;
+      recordsError = error;
+    }
     
     if (recordsError) {
       console.error('Error fetching user records:', recordsError);

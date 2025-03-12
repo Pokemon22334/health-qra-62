@@ -1,14 +1,17 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { QrCode, Download, Share2, Copy, Loader2, Trash2, Clock } from 'lucide-react';
+import { QrCode, Download, Share2, Copy, Loader, Trash2, Clock, FileText } from 'lucide-react';
 import { generatePublicQRCode, getUserPublicQRCodes, deletePublicQRCode } from '@/lib/utils/publicQrCode';
+import { supabase } from '@/lib/supabase';
 
 const PublicQRCodeGenerator = () => {
   const { user } = useAuth();
@@ -22,6 +25,43 @@ const PublicQRCodeGenerator = () => {
   const [qrLabel, setQrLabel] = useState('My Medical Records');
   const [expiry, setExpiry] = useState('never');
   const [customDays, setCustomDays] = useState(30);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [userRecords, setUserRecords] = useState<any[]>([]);
+  const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+  const [shareAllRecords, setShareAllRecords] = useState(true);
+
+  // Fetch user records when the component mounts
+  useEffect(() => {
+    if (user && qrFormOpen) {
+      fetchUserRecords();
+    }
+  }, [user, qrFormOpen]);
+
+  const fetchUserRecords = async () => {
+    if (!user) return;
+    
+    try {
+      setRecordsLoading(true);
+      const { data, error } = await supabase
+        .from('health_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      setUserRecords(data || []);
+    } catch (error: any) {
+      console.error('Error fetching records:', error);
+      toast({
+        title: 'Failed to load records',
+        description: 'Could not retrieve your health records.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRecordsLoading(false);
+    }
+  };
 
   const loadUserQRCodes = async () => {
     if (!user) return;
@@ -61,7 +101,10 @@ const PublicQRCodeGenerator = () => {
       if (expiry === '90') expiryDays = 90;
       if (expiry === 'custom') expiryDays = customDays;
       
-      const data = await generatePublicQRCode(user.id, qrLabel, expiryDays);
+      // Get record IDs to share
+      const recordIds = shareAllRecords ? [] : selectedRecords;
+      
+      const data = await generatePublicQRCode(user.id, qrLabel, expiryDays, recordIds);
       setQrCodeData(data);
       setShowQRDialog(true);
       setQrFormOpen(false);
@@ -123,6 +166,31 @@ const PublicQRCodeGenerator = () => {
     });
   };
 
+  const handleRecordSelectionChange = (recordId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedRecords(prev => [...prev, recordId]);
+    } else {
+      setSelectedRecords(prev => prev.filter(id => id !== recordId));
+    }
+  };
+
+  const handleShareAllChange = (checked: boolean) => {
+    setShareAllRecords(checked);
+    if (checked) {
+      setSelectedRecords([]);
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'blood_test': return 'Blood Test';
+      case 'prescription': return 'Prescription';
+      case 'xray_mri': return 'X-Ray / MRI';
+      case 'doctor_note': return 'Doctor Note';
+      default: return category.replace('_', ' ');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -182,10 +250,62 @@ const PublicQRCodeGenerator = () => {
                 </div>
               )}
               
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="share-all" 
+                    checked={shareAllRecords}
+                    onCheckedChange={handleShareAllChange}
+                  />
+                  <Label htmlFor="share-all" className="font-medium">Share all health records</Label>
+                </div>
+              </div>
+              
+              {!shareAllRecords && (
+                <div className="space-y-2">
+                  <Label>Select records to share</Label>
+                  {recordsLoading ? (
+                    <div className="flex items-center justify-center h-20">
+                      <Loader className="h-5 w-5 animate-spin text-medivault-600 mr-2" />
+                      <span className="text-sm">Loading records...</span>
+                    </div>
+                  ) : userRecords.length > 0 ? (
+                    <div className="max-h-40 overflow-y-auto space-y-2 border rounded-md p-2">
+                      {userRecords.map(record => (
+                        <div key={record.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`record-${record.id}`}
+                            checked={selectedRecords.includes(record.id)}
+                            onCheckedChange={(checked) => handleRecordSelectionChange(record.id, checked === true)}
+                            disabled={shareAllRecords}
+                          />
+                          <div className="flex items-center">
+                            <FileText className="h-3.5 w-3.5 mr-1 text-gray-600" />
+                            <Label htmlFor={`record-${record.id}`} className="text-sm">
+                              {record.title} <span className="text-xs text-gray-500">({getCategoryLabel(record.category)})</span>
+                            </Label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-sm text-gray-500 p-4 bg-gray-50 rounded-md">
+                      No health records found
+                    </div>
+                  )}
+                  {!shareAllRecords && selectedRecords.length === 0 && userRecords.length > 0 && (
+                    <div className="text-xs text-amber-600">
+                      Please select at least one record to share
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="bg-yellow-50 p-3 rounded-md text-sm text-yellow-800">
                 <p className="font-medium">Important Note</p>
                 <p>
-                  This will create a public QR code that allows anyone to access all your medical records 
+                  This will create a public QR code that allows anyone to access 
+                  {shareAllRecords ? ' all' : ' selected'} medical records 
                   without requiring authentication. Use this feature carefully.
                 </p>
               </div>
@@ -195,10 +315,14 @@ const PublicQRCodeGenerator = () => {
               <Button type="button" variant="outline" onClick={() => setQrFormOpen(false)}>
                 Cancel
               </Button>
-              <Button type="button" onClick={handleGenerateQR} disabled={isGenerating}>
+              <Button 
+                type="button" 
+                onClick={handleGenerateQR} 
+                disabled={isGenerating || (!shareAllRecords && selectedRecords.length === 0 && userRecords.length > 0)}
+              >
                 {isGenerating ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
                     Generating...
                   </>
                 ) : (
@@ -215,7 +339,7 @@ const PublicQRCodeGenerator = () => {
       
       {isLoading ? (
         <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-8 w-8 animate-spin text-medivault-600 mr-2" />
+          <Loader className="h-8 w-8 animate-spin text-medivault-600 mr-2" />
           <span>Loading QR codes...</span>
         </div>
       ) : userQRCodes.length > 0 ? (
