@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import SocialLogin from "@/components/auth/SocialLogin";
+import { useAuth } from "@/context/AuthContext";
 
 interface LoginFormProps {
-  onSuccessfulLogin: () => void;
+  onSuccessfulLogin: (requires2FA?: boolean) => void;
 }
 
 const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
   const { toast } = useToast();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,18 +23,16 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login verification
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Use the login function from AuthContext to authenticate with Supabase
+      const { success, requires2FA } = await login(email, password);
       
-      // For demo purposes, show 2FA after successful credential check
-      if (email && password.length >= 6) {
-        // Mock 2FA requirement check (in a real app, this would be server-side)
-        onSuccessfulLogin();
+      if (success) {
+        onSuccessfulLogin(requires2FA);
       } else {
         setLoginAttempts(prev => prev + 1);
         
@@ -52,7 +52,16 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
           variant: "destructive",
         });
       }
-    }, 1500);
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: "An error occurred during login. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
