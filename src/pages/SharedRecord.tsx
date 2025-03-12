@@ -40,6 +40,7 @@ const SharedRecord = () => {
         }
         
         // Fetch the record using the QR code ID
+        // Note: We're passing undefined for userId if user is not logged in
         const recordData = await getRecordByQRCode(id, user?.id);
         setRecord(recordData);
         setAccessTime(new Date().toLocaleString());

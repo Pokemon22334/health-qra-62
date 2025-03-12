@@ -78,7 +78,6 @@ const EmergencyAccess = () => {
               .from('emergency_access_logs')
               .insert({
                 profile_id: data.id,
-                accessed_at: new Date().toISOString(),
                 ip_address: 'anonymous', // For privacy, we're not storing actual IP
               });
             

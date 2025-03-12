@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -44,6 +45,7 @@ const LiveProfilePage = () => {
         setIsLoading(true);
         setError(null);
         
+        // Get the permanent QR code data
         const { data: qrData, error: qrError } = await supabase
           .from('user_permanent_qr')
           .select('*')
@@ -61,6 +63,7 @@ const LiveProfilePage = () => {
         
         setProfileData(qrData);
         
+        // Get user profile data
         const { data: userData, error: userError } = await supabase
           .from('profiles')
           .select('*')
@@ -71,6 +74,7 @@ const LiveProfilePage = () => {
           setUserProfile(userData);
         }
         
+        // Get health records
         const { data: recordsData, error: recordsError } = await supabase
           .from('health_records')
           .select('*')
@@ -80,6 +84,7 @@ const LiveProfilePage = () => {
         if (recordsError) throw recordsError;
         setRecords(recordsData || []);
         
+        // Get medications
         const { data: medsData, error: medsError } = await supabase
           .from('medications')
           .select('*')
@@ -89,6 +94,7 @@ const LiveProfilePage = () => {
         if (medsError) throw medsError;
         setMedications(medsData || []);
         
+        // Get emergency profile
         const { data: emergencyData, error: emergencyError } = await supabase
           .from('emergency_profiles')
           .select('*')
@@ -99,6 +105,7 @@ const LiveProfilePage = () => {
           setEmergencyProfile(emergencyData);
         }
         
+        // Log the access
         try {
           await supabase
             .from('emergency_access_logs')
@@ -108,6 +115,7 @@ const LiveProfilePage = () => {
             });
         } catch (logError) {
           console.error('Failed to log access:', logError);
+          // Non-critical error, just continue
         }
       } catch (error: any) {
         console.error('Error fetching profile data:', error);
