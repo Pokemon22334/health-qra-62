@@ -70,14 +70,15 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       
       // Verify storage access and bucket existence
       try {
-        const { data: bucketInfo, error: storageError } = await supabase
+        // The getPublicUrl method doesn't return an error property, so we should handle this differently
+        const publicUrlResponse = supabase
           .storage
           .from('medical_records')
-          .getPublicUrl('test.txt'); // Just to test the bucket without creating a file
+          .getPublicUrl('test.txt');
           
-        if (storageError) {
-          console.error('Storage access error:', storageError);
-          throw new Error(`Storage access error: ${storageError.message}`);
+        // If we get here, the bucket likely exists, but we need to check if the operation succeeded
+        if (!publicUrlResponse.data) {
+          throw new Error('Storage access error: Could not get public URL');
         }
       } catch (bucketError: any) {
         console.error('Bucket verification error:', bucketError);
@@ -100,11 +101,11 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       console.log('File uploaded successfully:', fileData?.path);
       
       // Get public URL
-      const { data: publicUrlData } = supabase.storage
+      const publicUrlResponse = supabase.storage
         .from('medical_records')
         .getPublicUrl(fileName);
         
-      const fileUrl = publicUrlData.publicUrl;
+      const fileUrl = publicUrlResponse.data.publicUrl;
       console.log('File public URL:', fileUrl);
       
       // Save record metadata to database
