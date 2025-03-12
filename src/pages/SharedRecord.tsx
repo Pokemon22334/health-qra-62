@@ -135,6 +135,7 @@ const SharedRecord = () => {
     }
   };
 
+  // If the page is accessed without authentication, we should still show the content
   return (
     <div className="min-h-screen flex flex-col">
       <NavBar />
