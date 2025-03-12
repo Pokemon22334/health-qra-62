@@ -1,150 +1,158 @@
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
+import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Download, Trash2, Share2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
-export interface RecordCardProps {
-  record: any; // The health record object
-  onUpdate?: () => Promise<void>; // Callback after record updates or deletions
-  isPublic?: boolean; // Is this being shown in a public context
-  canShare?: boolean; // Can this record be shared
-  onShare?: (record: any) => void; // Callback for sharing
+interface RecordProps {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  file_url: string;
+  created_at: string;
+  user_id: string;
+  [key: string]: any; // Allow other properties
 }
 
-const RecordCard: React.FC<RecordCardProps> = ({ 
+interface RecordCardProps {
+  record: RecordProps;
+  onUpdate?: () => void;
+  className?: string;
+}
+
+const getTypeInfo = (category: string) => {
+  switch (category) {
+    case 'blood_test':
+      return { icon: FileText, color: 'text-red-500', bg: 'bg-red-50' };
+    case 'prescription':
+      return { icon: File, color: 'text-emerald-500', bg: 'bg-emerald-50' };
+    case 'xray_mri':
+      return { icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-50' };
+    case 'doctor_note':
+      return { icon: FileText, color: 'text-amber-500', bg: 'bg-amber-50' };
+    default:
+      return { icon: FileText, color: 'text-gray-500', bg: 'bg-gray-50' };
+  }
+};
+
+const RecordCard = ({ 
   record,
-  onUpdate,
-  isPublic = false,
-  canShare = false,
-  onShare
-}) => {
-  const { toast } = useToast();
-
-  // Format the date to a readable format
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  // Handle file download
-  const handleDownload = () => {
+  className,
+  onUpdate
+}: RecordCardProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const { icon: TypeIcon, color, bg } = getTypeInfo(record.category);
+  
+  // Format the date from string to Date object
+  const createdDate = new Date(record.created_at);
+  
+  const handleView = () => {
+    // Open record file in new tab
     if (record.file_url) {
       window.open(record.file_url, '_blank');
-    } else {
-      toast({
-        title: 'Download failed',
-        description: 'File URL is not available.',
-        variant: 'destructive',
-      });
     }
   };
-
-  // Handle record deletion
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this record?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('health_records')
-        .delete()
-        .eq('id', record.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Record deleted',
-        description: 'The health record has been removed successfully.',
-      });
-
-      if (onUpdate) {
-        await onUpdate();
-      }
-    } catch (error: any) {
-      console.error('Error deleting record:', error);
-      toast({
-        title: 'Deletion failed',
-        description: error.message || 'Failed to delete the record.',
-        variant: 'destructive',
-      });
+  
+  const handleDownload = () => {
+    // Download file logic
+    if (record.file_url) {
+      const link = document.createElement('a');
+      link.href = record.file_url;
+      link.download = record.title || 'medical-record';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
-
-  // Handle record sharing
-  const handleShare = () => {
-    if (onShare) {
-      onShare(record);
-    }
+  
+  const handleDelete = () => {
+    // Delete record logic (to be implemented)
+    console.log('Delete record:', record.id);
+    // After deletion, trigger update
+    if (onUpdate) onUpdate();
   };
-
-  // Get the appropriate badge color based on category
-  const getCategoryBadgeClass = (category: string) => {
-    switch(category) {
-      case 'blood_test': 
-        return "bg-red-100 text-red-800";
-      case 'xray_mri': 
-        return "bg-blue-100 text-blue-800";
-      case 'prescription': 
-        return "bg-green-100 text-green-800";
-      case 'doctor_note': 
-        return "bg-yellow-100 text-yellow-800";
-      default: 
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
+  
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <CardContent className="p-0">
-        <div className="p-4">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-medium text-gray-900 mr-2">{record.title}</h3>
-            <span className={`px-2 py-1 text-xs rounded-full ${getCategoryBadgeClass(record.category)}`}>
-              {record.category.replace('_', ' ')}
-            </span>
-          </div>
-          
-          <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-            {record.description || 'No description provided'}
-          </p>
-          
-          <div className="flex items-center text-xs text-gray-500">
-            <Calendar className="h-3 w-3 mr-1" />
-            <span>Added: {formatDate(record.created_at)}</span>
-          </div>
+    <Card 
+      className={cn(
+        "overflow-hidden transition-all duration-300 border-gray-100 hover:shadow-md group",
+        isHovered && "border-medivault-200",
+        className
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="p-4 flex gap-4">
+        <div className={cn("w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0", bg)}>
+          <TypeIcon className={cn("w-6 h-6", color)} />
         </div>
         
-        <div className="border-t border-gray-100 bg-gray-50 p-3 flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={handleDownload}>
-            <Download className="h-4 w-4 mr-2" />
-            <span>Download</span>
-          </Button>
-          
-          {!isPublic && (
-            <>
-              {canShare && (
-                <Button size="sm" variant="outline" onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  <span>Share</span>
+        <div className="flex-grow min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-medium text-gray-900 truncate">{record.title}</h3>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
-              )}
-              
-              <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50" onClick={handleDelete}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                <span>Delete</span>
-              </Button>
-            </>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleView}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  <span>View</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownload}>
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Download</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDelete}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          <div className="flex items-center text-sm text-gray-500 mt-1">
+            <Calendar className="h-3.5 w-3.5 mr-1" />
+            <span>{format(createdDate, 'MMM d, yyyy')}</span>
+          </div>
+          
+          {record.description && (
+            <p className="text-xs text-gray-500 mt-1 truncate">
+              {record.description}
+            </p>
           )}
         </div>
-      </CardContent>
+      </div>
+      
+      <CardFooter className="py-2 px-4 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
+        <span>{record.category.replace('_', ' ')}</span>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs" 
+            onClick={handleView}
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            View
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs" 
+            onClick={handleDownload}
+          >
+            <Download className="h-3 w-3 mr-1" />
+            Download
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 };

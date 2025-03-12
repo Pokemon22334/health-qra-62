@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -57,13 +58,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await fetchProfile(session.user.id);
         } else {
           setIsLoading(false);
-          // Redirect to login if no session
-          navigate('/login');
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
         setIsLoading(false);
-        navigate('/login');
       }
     };
     
@@ -80,7 +78,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setProfile(null);
         setIsLoading(false);
-        navigate('/login');
       }
 
       if (event === 'SIGNED_OUT') {
@@ -99,7 +96,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfileFetchAttempted(true);
       setFetchAttempts(prev => prev + 1);
       
-      // First attempt to get the profile
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -116,12 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // If no profile was found, create a basic one
       if (!profile) {
         if (!user) {
-          console.warn('User is undefined, using basic profile');
-          // Set a basic profile to prevent getting stuck
-          const basicProfile = { id: userId, name: 'User', email: 'unknown', role: 'patient' };
-          setProfile(basicProfile);
-          setIsLoading(false);
-          return;
+          throw new Error('User is undefined, cannot create profile');
         }
         
         const { user_metadata } = user || {};
@@ -130,10 +121,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           console.log('Creating new profile for user:', userId);
           
-          // First create a basic profile to use in case insertion fails
-          const basicProfile = { id: userId, name, email: user.email, role: 'patient' };
-
-          // Attempt to create a profile record
           const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
             .insert([{ 
@@ -143,28 +130,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               role: 'patient' 
             }])
             .select()
-            .maybeSingle();
+            .single();
             
           if (insertError) {
             console.error('Error creating profile:', insertError.message);
-            // Use the basic profile anyway
-            setProfile(basicProfile);
-            toast({
-              title: 'Profile setup issue',
-              description: 'Using a temporary profile while we resolve an issue.',
-              variant: 'destructive',
-            });
-          } else if (newProfile) {
-            console.log('Created new profile:', newProfile);
-            setProfile(newProfile);
-            toast({
-              title: 'Profile created',
-              description: 'Your profile has been set up successfully.',
-            });
-          } else {
-            // In case no error but also no profile returned
-            setProfile(basicProfile);
+            throw insertError;
           }
+          
+          console.log('Created new profile:', newProfile);
+          setProfile(newProfile);
+          toast({
+            title: 'Profile created',
+            description: 'Your profile has been set up successfully.',
+          });
         } catch (createError: any) {
           console.error('Error creating profile:', createError.message);
           
@@ -199,9 +177,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: 'Using a temporary profile while we resolve the issue.',
           variant: 'destructive',
         });
-      } else {
-        // Create a minimal profile if we don't even have user data
-        setProfile({ id: userId, name: 'User', role: 'patient' });
       }
     } finally {
       setIsLoading(false);
@@ -309,30 +284,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Add a timeout to prevent infinite loading
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (isLoading && profileFetchAttempted && fetchAttempts > 2) {
+      if (isLoading && !profileFetchAttempted) {
         console.warn('Auth loading timeout reached - forcing loading state to complete');
         setIsLoading(false);
-        
-        // If we have a user but no profile after multiple attempts, create a minimal profile
-        if (user && !profile) {
-          const minimalProfile = {
-            id: user.id,
-            name: user.user_metadata?.name || 'User',
-            email: user.email || 'unknown',
-            role: 'patient'
-          };
-          setProfile(minimalProfile);
-          
-          toast({
-            title: 'Profile issue resolved',
-            description: 'We created a basic profile to get you started.',
-          });
-        }
       }
     }, 5000); // 5 second timeout
     
     return () => clearTimeout(timeoutId);
-  }, [isLoading, profileFetchAttempted, fetchAttempts, user, profile]);
+  }, [isLoading, profileFetchAttempted]);
 
   return (
     <AuthContext.Provider value={{
