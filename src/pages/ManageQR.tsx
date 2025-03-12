@@ -41,7 +41,7 @@ const ManageQR = () => {
     }
   }, [isLoading, isAuthenticated, navigate, toast]);
 
-  // Add force refresh when component mounts or refresh is triggered
+  // Always refresh when component mounts
   useEffect(() => {
     if (user) {
       handleRefresh();
