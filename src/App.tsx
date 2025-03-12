@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -40,7 +41,9 @@ const App = () => {
           <Route path="/scan-qr" element={<ScanQR />} />
           <Route path="/manage-qr" element={<ManageQR />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          {/* Route for individual health record QR codes */}
           <Route path="/shared-record/:id" element={<SharedRecord />} />
+          {/* Route for public QR collections */}
           <Route path="/public-records/:qrId" element={<PublicRecordsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

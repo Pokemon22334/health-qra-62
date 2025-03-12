@@ -1,9 +1,11 @@
 
 import { HeartPulse, Shield } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import PublicRecordsList from '@/components/PublicRecordsList';
 
 const PublicRecordsPage = () => {
+  const { qrId } = useParams<{ qrId: string }>();
+  
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white shadow-md">
