@@ -1,8 +1,14 @@
 
 import { supabase } from '@/lib/supabase';
 
-// Generate a public QR code for all user's health records
-export const generatePublicQRCode = async (userId: string, label?: string, expiryDays?: number, specificRecordIds: string[] = []) => {
+// Update the function signature to include emergency profile
+export const generatePublicQRCode = async (
+  userId: string, 
+  label?: string, 
+  expiryDays?: number, 
+  specificRecordIds: string[] = [],
+  includeEmergencyProfile: boolean = false
+) => {
   try {
     console.log('Generating public QR code for user:', userId);
     const hasSpecificRecords = specificRecordIds.length > 0;
@@ -20,7 +26,8 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
       .insert({
         user_id: userId,
         label: label || 'My Medical Records',
-        expires_at: expiresAt ? expiresAt.toISOString() : null
+        expires_at: expiresAt ? expiresAt.toISOString() : null,
+        include_emergency_profile: includeEmergencyProfile
       })
       .select()
       .single();
@@ -101,7 +108,8 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
       qrCode,
       qrImageUrl,
       shareableUrl,
-      recordCount: records?.length || 0
+      recordCount: records?.length || 0,
+      includesEmergencyProfile: includeEmergencyProfile
     };
   } catch (error) {
     console.error('Error generating public QR code:', error);

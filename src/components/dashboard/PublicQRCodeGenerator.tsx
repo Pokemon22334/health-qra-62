@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -29,13 +28,31 @@ const PublicQRCodeGenerator = () => {
   const [userRecords, setUserRecords] = useState<any[]>([]);
   const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
   const [shareAllRecords, setShareAllRecords] = useState(true);
+  const [includeEmergencyProfile, setIncludeEmergencyProfile] = useState(false);
+  const [hasEmergencyProfile, setHasEmergencyProfile] = useState(false);
 
-  // Fetch user records when the component mounts
   useEffect(() => {
     if (user && qrFormOpen) {
-      fetchUserRecords();
+      checkEmergencyProfile();
     }
   }, [user, qrFormOpen]);
+
+  const checkEmergencyProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: profile } = await supabase
+        .from('emergency_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      setHasEmergencyProfile(!!profile);
+    } catch (error) {
+      console.error('Error checking emergency profile:', error);
+      setHasEmergencyProfile(false);
+    }
+  };
 
   const fetchUserRecords = async () => {
     if (!user) return;
@@ -101,10 +118,15 @@ const PublicQRCodeGenerator = () => {
       if (expiry === '90') expiryDays = 90;
       if (expiry === 'custom') expiryDays = customDays;
       
-      // Get record IDs to share
       const recordIds = shareAllRecords ? [] : selectedRecords;
       
-      const data = await generatePublicQRCode(user.id, qrLabel, expiryDays, recordIds);
+      const data = await generatePublicQRCode(
+        user.id, 
+        qrLabel, 
+        expiryDays, 
+        recordIds,
+        includeEmergencyProfile
+      );
       setQrCodeData(data);
       setShowQRDialog(true);
       setQrFormOpen(false);
@@ -179,6 +201,10 @@ const PublicQRCodeGenerator = () => {
     if (checked) {
       setSelectedRecords([]);
     }
+  };
+
+  const handleIncludeEmergencyChange = (checked: boolean) => {
+    setIncludeEmergencyProfile(checked);
   };
 
   const getCategoryLabel = (category: string) => {
@@ -298,6 +324,24 @@ const PublicQRCodeGenerator = () => {
                       Please select at least one record to share
                     </div>
                   )}
+                </div>
+              )}
+              
+              {hasEmergencyProfile && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox 
+                      id="include-emergency" 
+                      checked={includeEmergencyProfile}
+                      onCheckedChange={(checked) => setIncludeEmergencyProfile(checked === true)}
+                    />
+                    <Label htmlFor="include-emergency" className="font-medium">
+                      Include Emergency Profile
+                    </Label>
+                  </div>
+                  <p className="text-sm text-gray-500 ml-6">
+                    Your emergency profile will be accessible through this QR code
+                  </p>
                 </div>
               )}
               
