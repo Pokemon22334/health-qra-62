@@ -71,6 +71,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     setupInitialSession();
 
+    // Handle auth params in URL (for email confirmations, etc.)
+    const handleAuthParamsInURL = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+      
+      // Check for error in hash or query params
+      const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
+      if (errorDescription) {
+        console.error('Auth error:', errorDescription);
+        toast({
+          title: 'Authentication error',
+          description: errorDescription,
+          variant: 'destructive',
+        });
+      }
+      
+      // Check for success message
+      const successMessage = hashParams.get('message') || queryParams.get('message');
+      if (successMessage) {
+        toast({
+          title: 'Success',
+          description: successMessage,
+        });
+      }
+
+      // Check for email confirmation success
+      if (window.location.hash.includes('access_token') || 
+          window.location.search.includes('access_token')) {
+        toast({
+          title: 'Email verified',
+          description: 'Your email has been verified successfully.',
+        });
+        navigate('/dashboard');
+      }
+    };
+
+    handleAuthParamsInURL();
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
@@ -82,13 +120,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate('/login');
       } else if (event === 'SIGNED_IN') {
         navigate('/dashboard');
+      } else if (event === 'USER_UPDATED') {
+        toast({
+          title: 'Profile updated',
+          description: 'Your profile has been updated successfully.',
+        });
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; requires2FA?: boolean }> => {
     try {
@@ -106,11 +149,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: true };
     } catch (error: any) {
       console.error('Login error:', error.message);
-      toast({
-        title: 'Login failed',
-        description: error.message,
-        variant: 'destructive',
-      });
+      
+      // Handle specific error codes
+      if (error.message === 'Email not confirmed') {
+        toast({
+          title: 'Email not verified',
+          description: 'Please check your email and click the verification link to complete your registration.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Login failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      
       setIsLoading(false);
       return { success: false };
     }
@@ -120,6 +174,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       
+      // Use the proper domain for redirect URLs
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -127,6 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           data: {
             name: fullName,
           },
+          emailRedirectTo: redirectTo
         },
       });
 
@@ -134,7 +192,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       toast({
         title: 'Account created',
-        description: 'Please check your email to verify your account.',
+        description: 'Please check your email to verify your account. The verification link will redirect you back to the application.',
       });
 
       setIsLoading(false);

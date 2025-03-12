@@ -19,6 +19,7 @@ import PublicRecordsPage from './pages/PublicRecordsPage';
 import ManageQR from './pages/ManageQR';
 import EmergencyProfile from './pages/EmergencyProfile';
 import EmergencyAccess from './pages/EmergencyAccess';
+import AuthCallback from './pages/AuthCallback';
 
 import './App.css';
 
@@ -41,6 +42,7 @@ function App() {
           <Route path="/manage-qr" element={<ManageQR />} />
           <Route path="/emergency-profile" element={<EmergencyProfile />} />
           <Route path="/emergency-access/:userId" element={<EmergencyAccess />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
