@@ -11,9 +11,10 @@ import GetStarted from "./pages/GetStarted";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
 import SharedRecord from "./pages/SharedRecord";
 import ScanQR from "./pages/ScanQR";
+import SettingsPage from "./pages/SettingsPage";
+import NotFound from "./pages/NotFound";
 
 // Setup router
 const router = createBrowserRouter([
@@ -52,6 +53,10 @@ const router = createBrowserRouter([
   {
     path: "/scan-qr",
     element: <ScanQR />,
+  },
+  {
+    path: "/settings",
+    element: <SettingsPage />,
   },
   {
     path: "*",
