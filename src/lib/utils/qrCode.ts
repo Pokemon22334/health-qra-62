@@ -19,7 +19,10 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating QR code record:', error);
+      throw error;
+    }
     
     // Generate a URL for this QR code
     const shareableUrl = generateShareableLink(data.id);
@@ -40,13 +43,16 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
 
 // Generate a shareable link for a QR code ID
 export const generateShareableLink = (qrCodeId: string): string => {
-  // In production, this would use your actual domain
-  return `${window.location.origin}/shared-record/${qrCodeId}`;
+  // Generate a shareable link using the current origin or a fallback
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://medivault.app';
+  return `${origin}/shared-record/${qrCodeId}`;
 };
 
 // Get a record by QR code ID
 export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) => {
   try {
+    console.log('Fetching record for QR code:', qrCodeId);
+    
     // Get the QR code
     const { data: qrCode, error: qrError } = await supabase
       .from('qr_codes')
@@ -54,17 +60,24 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
       .eq('id', qrCodeId)
       .single();
     
-    if (qrError) throw qrError;
+    if (qrError) {
+      console.error('QR code not found:', qrError);
+      throw new Error('QR code not found or invalid');
+    }
     
     // Check if the QR code has expired
     if (new Date(qrCode.expires_at) < new Date()) {
+      console.error('QR code expired:', qrCode.expires_at);
       throw new Error('QR code has expired');
     }
     
     // Check if the QR code has been revoked
     if (qrCode.is_revoked) {
+      console.error('QR code has been revoked');
       throw new Error('QR code has been revoked');
     }
+    
+    console.log('QR code valid, fetching record:', qrCode.record_id);
     
     // Get the record
     const { data: record, error: recordError } = await supabase
@@ -73,16 +86,22 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
       .eq('id', qrCode.record_id)
       .single();
     
-    if (recordError) throw recordError;
+    if (recordError) {
+      console.error('Record not found:', recordError);
+      throw new Error('The requested medical record could not be found');
+    }
     
     // Log the access
     if (accessorId) {
+      console.log('Logging access by user:', accessorId);
       await supabase
         .from('qr_code_access')
         .insert({
           qr_code_id: qrCodeId,
           accessed_by: accessorId,
         });
+    } else {
+      console.log('Anonymous access - no user ID provided');
     }
     
     return record;
@@ -103,7 +122,10 @@ export const revokeQRCode = async (qrCodeId: string, userId: string) => {
       .eq('created_by', userId)
       .single();
     
-    if (qrError) throw qrError;
+    if (qrError) {
+      console.error('Error fetching QR code for revocation:', qrError);
+      throw new Error('QR code not found or you do not have permission to revoke it');
+    }
     
     // Update the QR code to revoke it
     const { error } = await supabase
@@ -111,7 +133,10 @@ export const revokeQRCode = async (qrCodeId: string, userId: string) => {
       .update({ is_revoked: true })
       .eq('id', qrCodeId);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error revoking QR code:', error);
+      throw error;
+    }
     
     return true;
   } catch (error) {
@@ -129,17 +154,52 @@ export const formatExpirationTime = (date: string): string => {
 // Check if a QR code is valid
 export const isQRCodeValid = async (qrCodeId: string): Promise<boolean> => {
   try {
+    console.log('Checking if QR code is valid:', qrCodeId);
+    
     const { data, error } = await supabase
       .from('qr_codes')
       .select('*')
       .eq('id', qrCodeId)
       .single();
     
-    if (error) return false;
+    if (error) {
+      console.error('Error checking QR code validity:', error);
+      return false;
+    }
     
     // Check if expired or revoked
-    return new Date(data.expires_at) > new Date() && !data.is_revoked;
+    const isValid = new Date(data.expires_at) > new Date() && !data.is_revoked;
+    console.log('QR code valid?', isValid, 'Expires:', data.expires_at, 'Revoked:', data.is_revoked);
+    
+    return isValid;
   } catch (error) {
+    console.error('Exception checking QR code validity:', error);
     return false;
+  }
+};
+
+// Get QR code access history
+export const getQRCodeAccessHistory = async (qrCodeId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('qr_code_access')
+      .select(`
+        *,
+        profiles:accessed_by (
+          id,
+          name,
+          email,
+          role
+        )
+      `)
+      .eq('qr_code_id', qrCodeId)
+      .order('accessed_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting QR code access history:', error);
+    throw error;
   }
 };

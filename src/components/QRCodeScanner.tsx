@@ -5,8 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { QrCode, Eye, AlertTriangle, Scan, FileText } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { QrCode, Eye, AlertTriangle, Scan, FileText, Clock } from 'lucide-react';
 import { isQRCodeValid, getRecordByQRCode } from '@/lib/utils/qrCode';
 
 const QRCodeScanner = () => {
@@ -16,6 +15,7 @@ const QRCodeScanner = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [record, setRecord] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accessTime, setAccessTime] = useState<string | null>(null);
 
   const handleQRCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +32,7 @@ const QRCodeScanner = () => {
     try {
       setIsLoading(true);
       setError(null);
+      setRecord(null);
       
       // Extract QR code ID if it's a URL
       let id = qrCodeId;
@@ -39,22 +40,31 @@ const QRCodeScanner = () => {
         id = qrCodeId.split('/shared-record/')[1];
       }
       
+      console.log('Processing QR code:', id);
+      
       // Validate QR code
       const isValid = await isQRCodeValid(id);
       if (!isValid) {
         setError('This QR code is invalid or has expired');
+        toast({
+          title: "Invalid QR code",
+          description: "This QR code is either invalid, expired, or has been revoked.",
+          variant: "destructive",
+        });
         return;
       }
       
       // Get record
       const recordData = await getRecordByQRCode(id, user?.id);
       setRecord(recordData);
+      setAccessTime(new Date().toLocaleString());
       
       toast({
         title: "Record accessed",
         description: "The medical record has been successfully accessed.",
       });
     } catch (error: any) {
+      console.error('QR code error:', error);
       setError(error.message || 'Failed to access record');
       toast({
         title: "Failed to access record",
@@ -94,7 +104,7 @@ const QRCodeScanner = () => {
             <Input
               value={qrCodeId}
               onChange={(e) => setQrCodeId(e.target.value)}
-              placeholder="Enter QR code ID or scan QR code"
+              placeholder="Enter QR code ID or paste shared link"
               disabled={isLoading}
               className="flex-1"
             />
@@ -133,6 +143,13 @@ const QRCodeScanner = () => {
               </span>
             </div>
             
+            {accessTime && (
+              <div className="mb-4 text-xs flex items-center text-gray-500">
+                <Clock className="h-3 w-3 mr-1" />
+                <span>Accessed: {accessTime}</span>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Document Preview</h4>
@@ -156,7 +173,8 @@ const QRCodeScanner = () => {
                         alt={record.title}
                         className="max-h-full max-w-full object-contain"
                         onError={(e) => {
-                          e.currentTarget.src = '/placeholder.svg';
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/placeholder.svg';
                         }}
                       />
                     )
