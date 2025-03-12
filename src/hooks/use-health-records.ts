@@ -68,43 +68,38 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       const timestamp = Date.now();
       const fileName = `${user.id}/${timestamp}-${file.name}`;
       
-      // Verify storage access and bucket existence
-      try {
-        // The getPublicUrl method doesn't return an error property, so we should handle this differently
-        const publicUrlResponse = supabase
-          .storage
-          .from('medical_records')
-          .getPublicUrl('test.txt');
-          
-        // If we get here, the bucket likely exists, but we need to check if the operation succeeded
-        if (!publicUrlResponse.data) {
-          throw new Error('Storage access error: Could not get public URL');
-        }
-      } catch (bucketError: any) {
-        console.error('Bucket verification error:', bucketError);
-        throw new Error(`Storage bucket verification failed: ${bucketError.message}`);
-      }
+      console.log('Storage path:', fileName);
       
-      // Upload file with specific options
+      // Upload file with specific options - ensure bucket exists
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('medical_records')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true // Changed to true to allow overwrites if needed
         });
         
       if (uploadError) {
         console.error('Upload error details:', uploadError);
+        
+        // Special handling for 404 bucket errors
+        if (uploadError.message.includes('404') || uploadError.message.includes('Bucket not found')) {
+          throw new Error('Storage system error: Medical records storage not available. Please contact support.');
+        }
+        
         throw new Error(`Error uploading file: ${uploadError.message}`);
       }
       
       console.log('File uploaded successfully:', fileData?.path);
       
-      // Get public URL
+      // Get public URL (not signed URL)
       const publicUrlResponse = supabase.storage
         .from('medical_records')
         .getPublicUrl(fileName);
         
+      if (!publicUrlResponse.data.publicUrl) {
+        throw new Error('Failed to generate public URL for file');
+      }
+      
       const fileUrl = publicUrlResponse.data.publicUrl;
       console.log('File public URL:', fileUrl);
       

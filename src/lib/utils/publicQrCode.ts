@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 // Generate a public QR code for all user's health records
@@ -182,6 +181,35 @@ export const getPublicRecordsByQRId = async (qrId: string) => {
     }
     
     console.log('Successfully retrieved', records?.length || 0, 'records');
+    
+    // Ensure file URLs are publicly accessible
+    if (records && records.length > 0) {
+      // Process each record to ensure public URL access
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        
+        // Check if file_url contains a supabase storage URL
+        if (record.file_url && record.file_url.includes('storage/v1/object/public')) {
+          // URL is already public, no need to modify
+          console.log('Record has public URL:', record.id);
+        } else if (record.file_url && record.file_url.includes('storage/v1/object/sign')) {
+          // Convert signed URL to public URL if needed
+          try {
+            const filePathMatch = record.file_url.match(/\/storage\/v1\/object\/sign\/([^?]+)/);
+            if (filePathMatch && filePathMatch[1]) {
+              const filePath = filePathMatch[1];
+              const publicUrl = supabase.storage.from('medical_records').getPublicUrl(filePath).data.publicUrl;
+              records[i] = { ...record, file_url: publicUrl };
+              console.log('Converted to public URL:', record.id);
+            }
+          } catch (urlError) {
+            console.error('Error converting to public URL:', urlError);
+            // Keep the original URL if conversion fails
+          }
+        }
+      }
+    }
+    
     return records || [];
   } catch (error) {
     console.error('Error getting public records by QR ID:', error);

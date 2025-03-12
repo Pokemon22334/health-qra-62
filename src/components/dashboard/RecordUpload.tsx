@@ -51,6 +51,12 @@ const RecordUpload = ({ onUploadComplete }: { onUploadComplete?: () => void }) =
       setCategory('other');
       setFile(null);
       
+      // Reset file input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
       // Notify parent component of upload completion
       if (onUploadComplete) {
         onUploadComplete();

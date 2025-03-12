@@ -68,6 +68,7 @@ const PublicRecordsList = () => {
         
         // Get associated records
         const recordsData = await getPublicRecordsByQRId(qrId);
+        console.log('Retrieved records:', recordsData);
         setRecords(recordsData);
         
         if (recordsData.length === 0) {
@@ -93,7 +94,27 @@ const PublicRecordsList = () => {
   }, [qrId, toast]);
 
   const handleDownload = (fileUrl: string) => {
-    window.open(fileUrl, '_blank');
+    try {
+      // Handle potential storage bucket errors
+      if (!fileUrl) {
+        toast({
+          title: 'File Error',
+          description: 'The file URL is invalid or unavailable',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Open the file in a new tab
+      window.open(fileUrl, '_blank');
+    } catch (err) {
+      console.error('Error opening file:', err);
+      toast({
+        title: 'File Access Error',
+        description: 'Unable to access the file. It may have been moved or deleted.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getCategoryBadgeClass = (category: string) => {
@@ -187,7 +208,12 @@ const PublicRecordsList = () => {
               </div>
               
               <div className="border-t border-gray-100 bg-gray-50 p-3 flex justify-end">
-                <Button size="sm" variant="outline" onClick={() => handleDownload(record.file_url)}>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleDownload(record.file_url)}
+                  disabled={!record.file_url}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   <span>View</span>
                 </Button>
