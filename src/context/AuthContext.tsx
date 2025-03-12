@@ -141,7 +141,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       // In a real app with 2FA, we would check if 2FA is required
-      // We'll simplify and remove this for now to fix the login issue
       const requires2FA = false;
       
       if (!requires2FA) {
@@ -234,6 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .insert({
             id: data.user.id,
             name: name,
+            email: email,
             role: role
           });
           

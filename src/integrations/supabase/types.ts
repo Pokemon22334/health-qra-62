@@ -9,7 +9,136 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      health_records: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          extracted_text: string | null
+          file_url: string
+          id: string
+          is_shared: boolean | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          extracted_text?: string | null
+          file_url: string
+          id?: string
+          is_shared?: boolean | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          extracted_text?: string | null
+          file_url?: string
+          id?: string
+          is_shared?: boolean | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          phone?: string | null
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
+      qr_code_access: {
+        Row: {
+          accessed_at: string
+          accessed_by: string | null
+          id: string
+          qr_code_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_by?: string | null
+          id?: string
+          qr_code_id: string
+        }
+        Update: {
+          accessed_at?: string
+          accessed_by?: string | null
+          id?: string
+          qr_code_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_code_access_qr_code_id_fkey"
+            columns: ["qr_code_id"]
+            isOneToOne: false
+            referencedRelation: "qr_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qr_codes: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          is_revoked: boolean | null
+          record_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          is_revoked?: boolean | null
+          record_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          is_revoked?: boolean | null
+          record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_codes_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "health_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
