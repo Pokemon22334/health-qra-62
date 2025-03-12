@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/context/AuthContext';
@@ -71,14 +70,12 @@ const EmergencyProfile = () => {
     }
   });
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!user) {
       navigate('/login', { state: { from: '/emergency-profile' } });
     }
   }, [user, navigate]);
 
-  // Fetch existing emergency profile
   useEffect(() => {
     const fetchEmergencyProfile = async () => {
       if (!user) return;
@@ -100,7 +97,6 @@ const EmergencyProfile = () => {
         if (data) {
           setProfileData(data);
           
-          // Set form values
           setValue('bloodType', data.blood_type || '');
           setValue('allergies', data.allergies || '');
           setValue('conditions', data.conditions || '');
@@ -118,7 +114,6 @@ const EmergencyProfile = () => {
           setValue('insuranceNumber', data.insurance_number || '');
           setValue('medicalNotes', data.medical_notes || '');
           
-          // Generate shareable URL and QR code for existing profile
           generateShareableLinks(user.id);
         }
       } catch (error) {
@@ -131,16 +126,16 @@ const EmergencyProfile = () => {
     fetchEmergencyProfile();
   }, [user, setValue]);
 
-  // Generate shareable emergency access URL and QR code
-  const generateShareableLinks = (userId: string) => {
-    const origin = window.location.origin;
-    const url = `${origin}/emergency-access/${userId}`;
-    setShareableUrl(url);
-    
-    // Generate QR code using a free API
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-    setQrImageUrl(qrUrl);
-  };
+  useEffect(() => {
+    if (user && profileData) {
+      const origin = window.location.origin;
+      const url = `${origin}/emergency-access/${user.id}`;
+      setShareableUrl(url);
+      
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+      setQrImageUrl(qrUrl);
+    }
+  }, [user, profileData]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -190,14 +185,12 @@ const EmergencyProfile = () => {
       
       let result;
       if (profileData) {
-        // Update existing profile
         result = await supabase
           .from('emergency_profiles')
           .update(profileDataToSave)
           .eq('id', profileData.id)
           .select();
       } else {
-        // Insert new profile
         result = await supabase
           .from('emergency_profiles')
           .insert(profileDataToSave)
@@ -210,7 +203,6 @@ const EmergencyProfile = () => {
       
       setProfileData(result.data[0]);
       
-      // Generate shareable URL and QR code if not already generated
       if (!shareableUrl) {
         generateShareableLinks(user.id);
       }
