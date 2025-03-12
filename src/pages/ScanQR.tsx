@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import QRCodeScanner from '@/components/QRCodeScanner';
 
 const ScanQR = () => {
-  const { isAuthenticated, isLoading, profile } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -22,8 +22,8 @@ const ScanQR = () => {
       navigate('/login');
     }
     
-    // Check if user is a doctor
-    if (!isLoading && isAuthenticated && profile && profile.role !== 'doctor') {
+    // Check if user is a doctor based on metadata instead of profile
+    if (!isLoading && isAuthenticated && user && user.user_metadata?.role !== 'doctor') {
       toast({
         title: "Access restricted",
         description: "This feature is only available to doctors.",
@@ -31,7 +31,7 @@ const ScanQR = () => {
       });
       navigate('/dashboard');
     }
-  }, [isLoading, isAuthenticated, navigate, toast, profile]);
+  }, [isLoading, isAuthenticated, navigate, toast, user]);
 
   if (isLoading) {
     return (

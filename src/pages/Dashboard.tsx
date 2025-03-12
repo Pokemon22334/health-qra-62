@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user, isAuthenticated, isLoading, profile, refreshProfile } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('records');
@@ -33,10 +33,10 @@ const Dashboard = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(0);
-  const [retryingProfile, setRetryingProfile] = useState(false);
+  const [retryingSession, setRetryingSession] = useState(false);
   
   useEffect(() => {
-    console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user, profile });
+    console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user });
     
     const timeoutId = setTimeout(() => {
       if ((isLoading || pageLoading) && retryAttempt < 3) {
@@ -61,31 +61,31 @@ const Dashboard = () => {
     }
     
     return () => clearTimeout(timeoutId);
-  }, [isLoading, isAuthenticated, navigate, toast, user, profile, retryAttempt]);
+  }, [isLoading, isAuthenticated, navigate, toast, user, retryAttempt]);
   
   const handleRetry = async () => {
     setLoadingTimeout(false);
     setPageLoading(true);
     setRetryAttempt(prev => prev + 1);
-    setRetryingProfile(true);
+    setRetryingSession(true);
     
     try {
-      console.log('Manually refreshing profile');
-      await refreshProfile();
+      console.log('Manually refreshing session');
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
-        title: "Profile refresh complete",
-        description: "Your profile has been refreshed.",
+        title: "Session refresh complete",
+        description: "Your session has been refreshed.",
       });
     } catch (error) {
-      console.error('Error refreshing profile:', error);
+      console.error('Error refreshing session:', error);
       toast({
-        title: "Profile refresh error",
-        description: "An unexpected error occurred while trying to refresh your profile.",
+        title: "Session refresh error",
+        description: "An unexpected error occurred while trying to refresh your session.",
         variant: "destructive",
       });
     } finally {
-      setRetryingProfile(false);
+      setRetryingSession(false);
       setPageLoading(false);
     }
   };
@@ -115,8 +115,8 @@ const Dashboard = () => {
                   We're having trouble loading your dashboard. This could be due to network issues or server load.
                 </p>
                 <div className="flex justify-center">
-                  <Button onClick={handleRetry} className="flex items-center" disabled={retryingProfile}>
-                    {retryingProfile ? (
+                  <Button onClick={handleRetry} className="flex items-center" disabled={retryingSession}>
+                    {retryingSession ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Retrying...
@@ -138,30 +138,20 @@ const Dashboard = () => {
     );
   }
 
-  if (user && !profile) {
+  if (!user) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <NavBar />
         <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
           <div className="text-center bg-red-50 p-6 rounded-lg border border-red-200 max-w-md">
             <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-red-800 mb-2">Profile Not Found</h3>
+            <h3 className="text-lg font-medium text-red-800 mb-2">Not Logged In</h3>
             <p className="text-sm text-red-700 mb-4">
-              We couldn't load your profile data. This might be a temporary issue.
+              Please log in to access your dashboard.
             </p>
             <div className="flex justify-center">
-              <Button onClick={handleRetry} className="flex items-center" disabled={retryingProfile}>
-                {retryingProfile ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Retrying...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Retry Loading Profile
-                  </>
-                )}
+              <Button onClick={() => navigate('/login')} className="flex items-center">
+                Go to Login
               </Button>
             </div>
           </div>
@@ -171,10 +161,7 @@ const Dashboard = () => {
     );
   }
 
-  const displayProfile = profile || { 
-    name: user?.user_metadata?.name || user?.user_metadata?.full_name || 'User',
-    role: 'patient'
-  };
+  const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name || 'User';
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -183,7 +170,7 @@ const Dashboard = () => {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome, {displayProfile?.name || 'User'}
+            Welcome, {displayName}
           </h1>
           <p className="text-gray-600 mt-1">
             Manage your health records and share them securely with your healthcare providers.
