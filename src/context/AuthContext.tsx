@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -37,6 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -44,14 +46,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Setting up auth state change listener');
     
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
+    const setupInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session:', session?.user?.id || 'None');
+        
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
         setIsLoading(false);
       }
-    });
+    };
+    
+    setupInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -79,6 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchProfile = async (userId: string) => {
     try {
       console.log('Fetching profile for user:', userId);
+      setProfileFetchAttempted(true);
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -86,16 +100,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error.message);
+        throw error;
+      }
       
-      setProfile(profile);
+      console.log('Profile fetched:', profile || 'No profile found');
+      
+      // If no profile was found, create a basic one
+      if (!profile) {
+        const { user_metadata } = user || {};
+        const name = user_metadata?.name || user_metadata?.full_name || 'User';
+        
+        try {
+          const { data: newProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert([{ id: userId, name, email: user.email, role: 'patient' }])
+            .select()
+            .single();
+            
+          if (insertError) throw insertError;
+          
+          console.log('Created new profile:', newProfile);
+          setProfile(newProfile);
+        } catch (createError: any) {
+          console.error('Error creating profile:', createError.message);
+          // Continue with a basic profile object so the app doesn't get stuck
+          setProfile({ id: userId, name: 'User', email: user.email });
+        }
+      } else {
+        setProfile(profile);
+      }
     } catch (error: any) {
-      console.error('Error fetching profile:', error.message);
+      console.error('Error in fetchProfile:', error.message);
       toast({
         title: 'Error fetching profile',
         description: error.message,
         variant: 'destructive',
       });
+      // Set a basic profile to prevent the app from getting stuck
+      setProfile({ id: userId, name: 'User' });
     } finally {
       setIsLoading(false);
     }
@@ -176,6 +220,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
   };
+
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isLoading && !profileFetchAttempted) {
+        console.warn('Auth loading timeout reached - forcing loading state to complete');
+        setIsLoading(false);
+      }
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, profileFetchAttempted]);
 
   return (
     <AuthContext.Provider value={{

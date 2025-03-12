@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -18,23 +17,35 @@ import {
   QrCode,
   Shield,
   Loader2,
-  Share2
+  Share2,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user, isAuthenticated, isLoading, profile } = useAuth();
+  const { user, isAuthenticated, isLoading, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('records');
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [pageLoading, setPageLoading] = useState(true);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   
   useEffect(() => {
     console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user, profile });
     
+    const timeoutId = setTimeout(() => {
+      if ((isLoading || pageLoading) && retryAttempt < 2) {
+        console.warn('Dashboard loading timeout reached - adding retry option');
+        setLoadingTimeout(true);
+      }
+    }, 10000);
+    
     if (!isLoading) {
       if (!isAuthenticated) {
+        console.log('User not authenticated, redirecting to login');
         toast({
           title: "Authentication required",
           description: "Please log in to access your dashboard.",
@@ -42,10 +53,30 @@ const Dashboard = () => {
         });
         navigate('/login');
       } else {
+        console.log('User authenticated, loading dashboard');
         setPageLoading(false);
       }
     }
-  }, [isLoading, isAuthenticated, navigate, toast, user, profile]);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, isAuthenticated, navigate, toast, user, profile, retryAttempt]);
+  
+  const handleRetry = async () => {
+    setLoadingTimeout(false);
+    setPageLoading(true);
+    setRetryAttempt(prev => prev + 1);
+    
+    try {
+      console.log('Manually refreshing profile');
+      await refreshProfile();
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
+    
+    setTimeout(() => {
+      setPageLoading(false);
+    }, 1000);
+  };
 
   const handleUploadComplete = () => {
     setShowUploadForm(false);
@@ -58,8 +89,51 @@ const Dashboard = () => {
         <NavBar />
         <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-medivault-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading your dashboard...</p>
+            {!loadingTimeout ? (
+              <>
+                <Loader2 className="h-10 w-10 animate-spin text-medivault-600 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">Loading your dashboard...</p>
+                <p className="text-xs text-gray-500">This should only take a moment</p>
+              </>
+            ) : (
+              <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200 max-w-md">
+                <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-yellow-800 mb-2">Taking longer than expected</h3>
+                <p className="text-sm text-yellow-700 mb-4">
+                  We're having trouble loading your dashboard. This could be due to network issues or server load.
+                </p>
+                <div className="flex justify-center">
+                  <Button onClick={handleRetry} className="flex items-center">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry Loading
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <NavBar />
+        <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
+          <div className="text-center bg-red-50 p-6 rounded-lg border border-red-200 max-w-md">
+            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-red-800 mb-2">Profile Not Found</h3>
+            <p className="text-sm text-red-700 mb-4">
+              We couldn't load your profile data. This might be a temporary issue.
+            </p>
+            <div className="flex justify-center">
+              <Button onClick={handleRetry} className="flex items-center">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry Loading Profile
+              </Button>
+            </div>
           </div>
         </main>
         <Footer />
