@@ -153,16 +153,13 @@ const RecordCard = ({
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      console.log('Deleting QR code for record:', record.id);
       
       const { data: qrCodes, error: fetchError } = await supabase
         .from('qr_codes')
         .select('*')
         .eq('record_id', record.id);
       
-      if (fetchError) {
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
       
       if (qrCodes && qrCodes.length > 0) {
         for (const qrCode of qrCodes) {
@@ -197,6 +194,8 @@ const RecordCard = ({
   
   const handleGenerateQR = async () => {
     setShowQRDialog(true);
+    setQrImageUrl(null);
+    setShareableUrl(null);
   };
   
   const handleCreateQRCode = async () => {

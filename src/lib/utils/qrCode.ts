@@ -1,7 +1,5 @@
-
 import { supabase } from '@/lib/supabase';
 
-// Generate a QR code for a health record
 export const generateQRCode = async (recordId: string, userId: string, expiryHours: number = 24) => {
   try {
     console.log('Generating QR code for record:', recordId, 'by user:', userId);
@@ -17,7 +15,7 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
         record_id: recordId,
         created_by: userId,
         expires_at: expiryDate.toISOString(),
-        is_revoked: false, // Explicitly set to false
+        is_revoked: false,
       })
       .select()
       .single();
@@ -36,7 +34,7 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
     // Generate a URL for this QR code
     const shareableUrl = generateShareableLink(data.id);
     
-    // Create a QR code image URL using a third-party service
+    // Create a QR code image URL
     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareableUrl)}`;
     
     return {
@@ -50,14 +48,12 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
   }
 };
 
-// Generate a shareable link for a QR code ID
 export const generateShareableLink = (qrCodeId: string): string => {
   // Generate a shareable link using the current origin or a fallback
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://medivault.app';
   return `${origin}/shared-record/${qrCodeId}`;
 };
 
-// Get a record by QR code ID
 export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) => {
   try {
     console.log('Fetching record for QR code:', qrCodeId);
@@ -172,7 +168,6 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
   }
 };
 
-// Revoke a QR code without deleting it
 export const revokeQRCode = async (qrId: string, userId: string) => {
   try {
     // Check if the user owns this QR code
@@ -208,34 +203,19 @@ export const revokeQRCode = async (qrId: string, userId: string) => {
   }
 };
 
-// Delete a QR code and its access logs
 export const deleteQRCode = async (qrId: string, userId: string) => {
   try {
-    // Check if the user owns this QR code
-    const { data: qrCode, error: qrError } = await supabase
-      .from('qr_codes')
-      .select('*')
-      .eq('id', qrId)
-      .eq('created_by', userId)
-      .maybeSingle();
-    
-    if (qrError || !qrCode) {
-      console.error('Error fetching QR code for deletion:', qrError);
-      throw new Error('QR code not found or you do not have permission to delete it');
-    }
-    
-    // First, delete any access logs associated with this QR code
+    // First delete any access logs for this QR code
     const { error: accessLogError } = await supabase
       .from('qr_code_access')
       .delete()
       .eq('qr_code_id', qrId);
     
     if (accessLogError) {
-      console.error('Error deleting QR code access logs:', accessLogError);
-      // Continue with deletion attempt even if access log deletion fails
+      console.error('Error deleting access logs:', accessLogError);
     }
     
-    // Now delete the QR code itself
+    // Then delete the QR code itself
     const { error: deleteError } = await supabase
       .from('qr_codes')
       .delete()
@@ -243,11 +223,9 @@ export const deleteQRCode = async (qrId: string, userId: string) => {
       .eq('created_by', userId);
     
     if (deleteError) {
-      console.error('Error deleting QR code:', deleteError);
       throw deleteError;
     }
     
-    console.log('QR code deleted successfully:', qrId);
     return true;
   } catch (error) {
     console.error('Error deleting QR code:', error);
@@ -255,7 +233,6 @@ export const deleteQRCode = async (qrId: string, userId: string) => {
   }
 };
 
-// Restore a previously revoked QR code or extend expiry
 export const restoreQRCode = async (qrId: string, userId: string, expiryHours: number = 24) => {
   try {
     // Check if the user owns this QR code
@@ -300,7 +277,6 @@ export const restoreQRCode = async (qrId: string, userId: string, expiryHours: n
   }
 };
 
-// Get all QR codes for a user
 export const getUserQRCodes = async (userId: string) => {
   try {
     console.log('Fetching QR codes for user:', userId);
@@ -330,13 +306,11 @@ export const getUserQRCodes = async (userId: string) => {
   }
 };
 
-// Format expiration time for display
 export const formatExpirationTime = (date: string): string => {
   const expirationDate = new Date(date);
   return expirationDate.toLocaleString();
 };
 
-// Check if a QR code is valid
 export const isQRCodeValid = async (qrCodeId: string): Promise<boolean> => {
   try {
     console.log('Checking if QR code is valid:', qrCodeId);
@@ -371,7 +345,6 @@ export const isQRCodeValid = async (qrCodeId: string): Promise<boolean> => {
   }
 };
 
-// Get QR code access history
 export const getQRCodeAccessHistory = async (qrCodeId: string) => {
   try {
     const { data, error } = await supabase
