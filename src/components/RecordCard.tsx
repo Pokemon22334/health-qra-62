@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye, QrCode } from 'lucide-react';
+import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye, QrCode, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -370,7 +370,7 @@ const RecordCard = ({
                 >
                   {qrGenerating ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader className="h-4 w-4 mr-2 animate-spin" />
                       Generating...
                     </>
                   ) : (
