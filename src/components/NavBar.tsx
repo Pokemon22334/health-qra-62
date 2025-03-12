@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, profile, logout } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -28,7 +28,7 @@ const NavBar = () => {
   const handleLogout = async () => {
     try {
       console.log('Logout button clicked');
-      await logout();
+      await signOut();
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of MediVault.",

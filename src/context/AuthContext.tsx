@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +9,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ success: boolean; requires2FA?: boolean }>;
+  signup: (fullName: string, email: string, password: string) => Promise<boolean>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,6 +20,9 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoading: true,
   signOut: async () => {},
+  login: async () => ({ success: false }),
+  signup: async () => false,
+  refreshProfile: async () => {},
 });
 
 export const useAuth = () => {
@@ -96,6 +101,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; requires2FA?: boolean }> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Login error:', error.message);
+      toast({
+        title: 'Login failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return { success: false };
+    }
+  };
+
+  const signup = async (fullName: string, email: string, password: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: fullName,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Account created',
+        description: 'Please check your email to verify your account.',
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Signup error:', error.message);
+      toast({
+        title: 'Signup failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -120,7 +183,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       profile,
       isAuthenticated: !!user,
       isLoading,
-      signOut
+      signOut,
+      login,
+      signup,
+      refreshProfile
     }}>
       {children}
     </AuthContext.Provider>
