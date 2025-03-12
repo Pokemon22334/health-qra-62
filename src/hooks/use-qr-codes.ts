@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
@@ -114,7 +115,32 @@ export const useQRCodes = () => {
         throw new Error('You must be logged in to revoke QR codes');
       }
       
-      await revokeQRCode(qrCodeId, user.id);
+      // Verify the user owns the QR code
+      const { data: qrCode, error: qrError } = await supabase
+        .from('qr_codes')
+        .select('created_by')
+        .eq('id', qrCodeId)
+        .single();
+      
+      if (qrError) {
+        console.error('Error getting QR code:', qrError);
+        throw new Error('QR code not found');
+      }
+      
+      if (qrCode.created_by !== user.id) {
+        throw new Error('You do not have permission to revoke this QR code');
+      }
+      
+      // Revoke the QR code by setting is_revoked to true
+      const { error } = await supabase
+        .from('qr_codes')
+        .update({ is_revoked: true })
+        .eq('id', qrCodeId);
+      
+      if (error) {
+        console.error('Error revoking QR code:', error);
+        throw new Error('Failed to revoke QR code');
+      }
       
       toast({
         title: 'QR code revoked successfully',
