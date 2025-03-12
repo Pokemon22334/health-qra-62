@@ -99,14 +99,34 @@ const PublicRecordsList = () => {
     try {
       setLoadingFiles(prev => ({ ...prev, [recordId]: true }));
       
-      const urlParts = fileUrl.split('medical_records/');
-      if (urlParts.length !== 2) {
-        throw new Error('Invalid file URL format');
+      // Extract the file path from the URL
+      let filePath;
+      if (fileUrl.includes('storage/v1/object/public/medical_records/')) {
+        // Handle public URL format
+        const parts = fileUrl.split('medical_records/');
+        if (parts.length !== 2) {
+          throw new Error('Invalid file URL format');
+        }
+        filePath = parts[1];
+      } else if (fileUrl.includes('storage/v1/object/sign/medical_records/')) {
+        // Handle signed URL format
+        const signedUrlMatch = fileUrl.match(/\/storage\/v1\/object\/sign\/medical_records\/([^?]+)/);
+        if (!signedUrlMatch || !signedUrlMatch[1]) {
+          throw new Error('Invalid signed URL format');
+        }
+        filePath = signedUrlMatch[1];
+      } else {
+        // Fallback for other URL formats - direct attempt
+        const parts = fileUrl.split('medical_records/');
+        if (parts.length !== 2) {
+          throw new Error('Could not parse file path from URL: ' + fileUrl);
+        }
+        filePath = parts[1];
       }
       
-      const filePath = urlParts[1];
-      console.log('Attempting to get file:', filePath);
+      console.log('Attempting to get file with path:', filePath);
 
+      // Create a signed URL for secure access
       const { data, error } = await supabase.storage
         .from('medical_records')
         .createSignedUrl(filePath, 60);
@@ -120,10 +140,11 @@ const PublicRecordsList = () => {
         throw new Error('No signed URL generated');
       }
 
+      console.log('Successfully generated signed URL');
       return data.signedUrl;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in getFileUrl:', error);
-      throw error;
+      throw new Error(`File access error: ${error.message || 'Could not access file'}`);
     } finally {
       setLoadingFiles(prev => ({ ...prev, [recordId]: false }));
     }
@@ -139,6 +160,8 @@ const PublicRecordsList = () => {
         });
         return;
       }
+      
+      console.log('Attempting to view file with URL:', fileUrl);
       
       // Get a signed URL and open the file
       const signedUrl = await getFileUrl(fileUrl, recordId);
