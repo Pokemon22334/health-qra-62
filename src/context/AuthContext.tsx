@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setIsLoading(false);
         
-        // If no session, redirect to login
+        // If no session, redirect to login unless it's a public page
         if (!session) {
           const currentPath = window.location.pathname;
           if (currentPath !== '/login' && 
@@ -58,7 +58,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               !currentPath.includes('/shared-record') &&
               !currentPath.includes('/features') &&
               !currentPath.includes('/about') &&
-              !currentPath.includes('/get-started')) {
+              !currentPath.includes('/get-started') &&
+              !currentPath.includes('/emergency-access')) {
             navigate('/login');
           }
         }

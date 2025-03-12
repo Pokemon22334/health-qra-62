@@ -113,8 +113,6 @@ const EmergencyProfile = () => {
           setValue('insuranceProvider', data.insurance_provider || '');
           setValue('insuranceNumber', data.insurance_number || '');
           setValue('medicalNotes', data.medical_notes || '');
-          
-          generateShareableLinks(user.id);
         }
       } catch (error) {
         console.error('Error in fetchEmergencyProfile:', error);
@@ -127,7 +125,7 @@ const EmergencyProfile = () => {
   }, [user, setValue]);
 
   useEffect(() => {
-    if (user && profileData) {
+    if (user) {
       const origin = window.location.origin;
       const url = `${origin}/emergency-access/${user.id}`;
       setShareableUrl(url);
@@ -135,7 +133,16 @@ const EmergencyProfile = () => {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
       setQrImageUrl(qrUrl);
     }
-  }, [user, profileData]);
+  }, [user]);
+
+  const generateShareableLinks = (userId: string) => {
+    const origin = window.location.origin;
+    const url = `${origin}/emergency-access/${userId}`;
+    setShareableUrl(url);
+    
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+    setQrImageUrl(qrUrl);
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
