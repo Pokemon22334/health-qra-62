@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, FileText, Download, Calendar, AlertTriangle } from 'lucide-react';
 import { getPublicRecordsByQRId, getPublicQRCodeById } from '@/lib/utils/publicQrCode';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 const PublicRecordsList = () => {
   const { qrId } = useParams<{ qrId: string }>();
@@ -13,6 +14,7 @@ const PublicRecordsList = () => {
   const [qrCode, setQrCode] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingFiles, setLoadingFiles] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -93,9 +95,42 @@ const PublicRecordsList = () => {
     fetchRecords();
   }, [qrId, toast]);
 
-  const handleDownload = (fileUrl: string) => {
+  const getFileUrl = async (fileUrl: string, recordId: string) => {
     try {
-      // Handle potential storage bucket errors
+      setLoadingFiles(prev => ({ ...prev, [recordId]: true }));
+      
+      const urlParts = fileUrl.split('medical_records/');
+      if (urlParts.length !== 2) {
+        throw new Error('Invalid file URL format');
+      }
+      
+      const filePath = urlParts[1];
+      console.log('Attempting to get file:', filePath);
+
+      const { data, error } = await supabase.storage
+        .from('medical_records')
+        .createSignedUrl(filePath, 60);
+
+      if (error) {
+        console.error('Error getting signed URL:', error);
+        throw error;
+      }
+
+      if (!data?.signedUrl) {
+        throw new Error('No signed URL generated');
+      }
+
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error in getFileUrl:', error);
+      throw error;
+    } finally {
+      setLoadingFiles(prev => ({ ...prev, [recordId]: false }));
+    }
+  };
+
+  const handleFileView = async (fileUrl: string, recordId: string) => {
+    try {
       if (!fileUrl) {
         toast({
           title: 'File Error',
@@ -105,13 +140,14 @@ const PublicRecordsList = () => {
         return;
       }
       
-      // Open the file in a new tab
-      window.open(fileUrl, '_blank');
-    } catch (err) {
+      // Get a signed URL and open the file
+      const signedUrl = await getFileUrl(fileUrl, recordId);
+      window.open(signedUrl, '_blank');
+    } catch (err: any) {
       console.error('Error opening file:', err);
       toast({
         title: 'File Access Error',
-        description: 'Unable to access the file. It may have been moved or deleted.',
+        description: err.message || 'Unable to access the file. It may have been moved or deleted.',
         variant: 'destructive',
       });
     }
@@ -211,11 +247,20 @@ const PublicRecordsList = () => {
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  onClick={() => handleDownload(record.file_url)}
-                  disabled={!record.file_url}
+                  onClick={() => handleFileView(record.file_url, record.id)}
+                  disabled={!record.file_url || loadingFiles[record.id]}
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  <span>View</span>
+                  {loadingFiles[record.id] ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      View
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>

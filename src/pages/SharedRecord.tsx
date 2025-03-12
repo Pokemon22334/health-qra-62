@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import { getRecordByQRCode, isQRCodeValid } from '@/lib/utils/qrCode';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 const SharedRecord = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,8 @@ const SharedRecord = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accessTime, setAccessTime] = useState<string | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRecord = async () => {
@@ -56,6 +59,64 @@ const SharedRecord = () => {
     
     fetchRecord();
   }, [id, user, toast]);
+
+  const getFileUrl = async (fileUrl: string) => {
+    try {
+      setFileLoading(true);
+      
+      const urlParts = fileUrl.split('medical_records/');
+      if (urlParts.length !== 2) {
+        throw new Error('Invalid file URL format');
+      }
+      
+      const filePath = urlParts[1];
+      console.log('Attempting to get file:', filePath);
+
+      const { data, error } = await supabase.storage
+        .from('medical_records')
+        .createSignedUrl(filePath, 60);
+
+      if (error) {
+        console.error('Error getting signed URL:', error);
+        throw error;
+      }
+
+      if (!data?.signedUrl) {
+        throw new Error('No signed URL generated');
+      }
+
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error in getFileUrl:', error);
+      throw error;
+    } finally {
+      setFileLoading(false);
+    }
+  };
+
+  const handleViewFile = async () => {
+    try {
+      if (!record?.file_url) {
+        toast({
+          title: 'File Error',
+          description: 'The file URL is invalid or unavailable',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      const signedUrl = await getFileUrl(record.file_url);
+      setFileUrl(signedUrl);
+      window.open(signedUrl, '_blank');
+    } catch (err: any) {
+      console.error('Error opening file:', err);
+      toast({
+        title: 'File Access Error',
+        description: err.message || 'Unable to access the file. It may have been moved or deleted.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const getCategoryBadgeClass = (category: string) => {
     if (!category) return "bg-gray-100 text-gray-800";
@@ -177,15 +238,23 @@ const SharedRecord = () => {
                       <div className="p-4 bg-gray-50 text-center">
                         <FileText className="h-16 w-16 text-gray-400 mx-auto mb-2" />
                         <p className="text-gray-600 mb-2">PDF Document</p>
-                        <Button asChild>
-                          <a href={record.file_url} target="_blank" rel="noopener noreferrer">
-                            View PDF
-                          </a>
+                        <Button 
+                          onClick={handleViewFile} 
+                          disabled={fileLoading}
+                        >
+                          {fileLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>View PDF</>
+                          )}
                         </Button>
                       </div>
-                    ) : (
+                    ) : fileUrl ? (
                       <img
-                        src={record.file_url}
+                        src={fileUrl}
                         alt={record.title}
                         className="w-full object-contain max-h-96"
                         onError={(e) => {
@@ -193,6 +262,22 @@ const SharedRecord = () => {
                           target.src = '/placeholder.svg';
                         }}
                       />
+                    ) : (
+                      <div className="p-4 bg-gray-50 text-center">
+                        <Button 
+                          onClick={handleViewFile}
+                          disabled={fileLoading}
+                        >
+                          {fileLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>View Image</>
+                          )}
+                        </Button>
+                      </div>
                     )
                   ) : (
                     <div className="p-4 bg-gray-50 text-center">
