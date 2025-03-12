@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, FileText, Download, Calendar, AlertTriangle } from 'lucide-react';
 import { getPublicRecordsByQRId, getPublicQRCodeById } from '@/lib/utils/publicQrCode';
+import { useToast } from '@/hooks/use-toast';
 
 const PublicRecordsList = () => {
   const { qrId } = useParams<{ qrId: string }>();
@@ -12,6 +13,7 @@ const PublicRecordsList = () => {
   const [qrCode, setQrCode] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -24,29 +26,79 @@ const PublicRecordsList = () => {
           return;
         }
         
+        console.log('Fetching records for QR ID:', qrId);
+        
         // Get QR code details
         const qrCodeData = await getPublicQRCodeById(qrId);
         setQrCode(qrCodeData);
         
+        if (!qrCodeData) {
+          setError('QR code not found or inactive');
+          toast({
+            title: 'QR Code Error',
+            description: 'This QR code could not be found or has been deactivated',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Check if expired
+        if (qrCodeData.expires_at) {
+          const expiresAt = new Date(qrCodeData.expires_at);
+          if (expiresAt < new Date()) {
+            setError('This QR code has expired');
+            toast({
+              title: 'QR Code Expired',
+              description: 'This QR code has expired and is no longer valid',
+              variant: 'destructive',
+            });
+            return;
+          }
+        }
+        
+        if (!qrCodeData.is_active) {
+          setError('This QR code has been deactivated');
+          toast({
+            title: 'QR Code Inactive',
+            description: 'This QR code has been deactivated by the owner',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
         // Get associated records
         const recordsData = await getPublicRecordsByQRId(qrId);
         setRecords(recordsData);
+        
+        if (recordsData.length === 0) {
+          toast({
+            title: 'No Records',
+            description: 'No medical records are associated with this QR code',
+          });
+        }
       } catch (error: any) {
         console.error('Error fetching public records:', error);
         setError(error.message || 'Failed to load records');
+        toast({
+          title: 'Error Loading Records',
+          description: error.message || 'Failed to load records',
+          variant: 'destructive',
+        });
       } finally {
         setLoading(false);
       }
     };
     
     fetchRecords();
-  }, [qrId]);
+  }, [qrId, toast]);
 
   const handleDownload = (fileUrl: string) => {
     window.open(fileUrl, '_blank');
   };
 
   const getCategoryBadgeClass = (category: string) => {
+    if (!category) return "bg-gray-100 text-gray-800";
+    
     switch(category) {
       case 'blood_test': 
         return "bg-red-100 text-red-800";
@@ -76,6 +128,9 @@ const PublicRecordsList = () => {
         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-red-800 mb-2">Access Error</h3>
         <p className="text-red-600 mb-4">{error}</p>
+        <Button asChild variant="outline">
+          <Link to="/">Return to Home</Link>
+        </Button>
       </div>
     );
   }
@@ -88,6 +143,9 @@ const PublicRecordsList = () => {
         <p className="text-gray-600">
           There are no medical records associated with this QR code.
         </p>
+        <Button asChild className="mt-4" variant="outline">
+          <Link to="/">Return to Home</Link>
+        </Button>
       </div>
     );
   }
@@ -114,7 +172,7 @@ const PublicRecordsList = () => {
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-medium text-gray-900 mr-2">{record.title}</h3>
                   <span className={`px-2 py-1 text-xs rounded-full ${getCategoryBadgeClass(record.category)}`}>
-                    {record.category.replace('_', ' ')}
+                    {record.category?.replace('_', ' ') || 'Unknown'}
                   </span>
                 </div>
                 
@@ -131,7 +189,7 @@ const PublicRecordsList = () => {
               <div className="border-t border-gray-100 bg-gray-50 p-3 flex justify-end">
                 <Button size="sm" variant="outline" onClick={() => handleDownload(record.file_url)}>
                   <Download className="h-4 w-4 mr-2" />
-                  <span>Download</span>
+                  <span>View</span>
                 </Button>
               </div>
             </CardContent>
