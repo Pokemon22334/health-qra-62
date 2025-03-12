@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -21,7 +20,10 @@ import {
   Eye,
   EyeOff,
   Info,
-  Heart
+  Heart,
+  FileText,
+  Copy,
+  Pill
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -42,7 +44,6 @@ const LiveQRPage = () => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [downloadingQr, setDownloadingQr] = useState(false);
   
-  // Check authentication and load QR data
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
@@ -60,7 +61,6 @@ const LiveQRPage = () => {
     }
   }, [isLoading, isAuthenticated, navigate, toast]);
 
-  // Load user's permanent QR code
   const loadUserQRCode = async () => {
     if (!user?.id) return;
     
@@ -74,7 +74,6 @@ const LiveQRPage = () => {
       if (error) throw error;
       
       if (data) {
-        // Generate QR code and shareable URL
         const qrData = {
           ...data,
           shareableUrl: generateShareableLink(data.id),
@@ -92,12 +91,10 @@ const LiveQRPage = () => {
     }
   };
 
-  // Load user stats (counts)
   const loadUserStats = async () => {
     if (!user?.id) return;
     
     try {
-      // Count health records
       const { count: recordsCount, error: recordsError } = await supabase
         .from('health_records')
         .select('*', { count: 'exact', head: true })
@@ -106,7 +103,6 @@ const LiveQRPage = () => {
       if (recordsError) throw recordsError;
       setRecordsCount(recordsCount || 0);
       
-      // Count medications
       const { count: medsCount, error: medsError } = await supabase
         .from('medications')
         .select('*', { count: 'exact', head: true })
@@ -115,7 +111,6 @@ const LiveQRPage = () => {
       if (medsError) throw medsError;
       setMedicationsCount(medsCount || 0);
       
-      // Check if user has emergency profile
       const { data: profile, error: profileError } = await supabase
         .from('emergency_profiles')
         .select('id')
@@ -130,21 +125,18 @@ const LiveQRPage = () => {
     }
   };
 
-  // Generate a new permanent QR code
   const generateLiveQR = async () => {
     if (!user) return;
     
     try {
       setIsGenerating(true);
       
-      // Check if user already has a QR code
       const { data: existingQR } = await supabase
         .from('user_permanent_qr')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
       
-      // If exists, return it instead of creating a new one
       if (existingQR) {
         toast({
           title: 'QR Code already exists',
@@ -155,7 +147,6 @@ const LiveQRPage = () => {
         return;
       }
       
-      // Create new permanent QR code
       const { data, error } = await supabase
         .from('user_permanent_qr')
         .insert({
@@ -169,7 +160,6 @@ const LiveQRPage = () => {
       if (error) throw error;
       
       if (data) {
-        // Generate QR code and shareable URL
         const qrData = {
           ...data,
           shareableUrl: generateShareableLink(data.id),
@@ -196,7 +186,6 @@ const LiveQRPage = () => {
     }
   };
 
-  // Toggle QR code active status
   const toggleQRActive = async (active: boolean) => {
     if (!liveQrData || !user) return;
     
@@ -209,7 +198,6 @@ const LiveQRPage = () => {
       
       if (error) throw error;
       
-      // Update local state
       setLiveQrData({ ...liveQrData, active });
       
       toast({
@@ -228,26 +216,22 @@ const LiveQRPage = () => {
     }
   };
 
-  // Generate shareable link
   const generateShareableLink = (qrId: string): string => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://medivault.app';
     return `${origin}/live-profile/${qrId}`;
   };
 
-  // Generate QR image URL
   const generateQRImageUrl = (qrId: string): string => {
     const shareableUrl = generateShareableLink(qrId);
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(shareableUrl)}`;
   };
 
-  // Open QR code dialog
   const viewQRCode = () => {
     if (liveQrData) {
       setQrDialogOpen(true);
     }
   };
 
-  // Download QR code
   const downloadQRCode = () => {
     if (!liveQrData) return;
     
@@ -277,14 +261,12 @@ const LiveQRPage = () => {
     }
   };
 
-  // Open share dialog
   const openShareDialog = () => {
     if (liveQrData) {
       setShareDialogOpen(true);
     }
   };
 
-  // Share via navigator share API (if available)
   const shareViaNavigator = async () => {
     if (!liveQrData) return;
     
@@ -305,7 +287,6 @@ const LiveQRPage = () => {
     }
   };
 
-  // Copy link to clipboard
   const copyToClipboard = () => {
     if (!liveQrData) return;
     
@@ -319,7 +300,6 @@ const LiveQRPage = () => {
     setShareDialogOpen(false);
   };
 
-  // If loading
   if (isLoading || pageLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -335,7 +315,6 @@ const LiveQRPage = () => {
     );
   }
 
-  // If not authenticated
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -511,7 +490,7 @@ const LiveQRPage = () => {
                 
                 <div className="flex justify-between items-center p-2 bg-gray-50 rounded-md">
                   <div className="flex items-center">
-                    <PillIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <Pill className="h-4 w-4 text-green-500 mr-2" />
                     <span className="text-sm">Medications</span>
                   </div>
                   <span className="text-sm font-medium">{medicationsCount}</span>
@@ -627,7 +606,7 @@ const LiveQRPage = () => {
                           <span>Your medical records (lab reports, prescriptions, X-rays, etc.)</span>
                         </li>
                         <li className="flex items-start">
-                          <PillIcon className="h-4 w-4 text-medivault-600 mr-2 mt-0.5" />
+                          <Pill className="h-4 w-4 text-medivault-600 mr-2 mt-0.5" />
                           <span>Current medications and dosage information</span>
                         </li>
                         <li className="flex items-start">
@@ -658,7 +637,6 @@ const LiveQRPage = () => {
                       </div>
                       
                       <div className="divide-y">
-                        {/* Medical Records Section */}
                         <div className="p-4">
                           <h4 className="font-medium text-gray-900 mb-3 flex items-center">
                             <FileText className="h-4 w-4 mr-2 text-blue-600" />
@@ -676,10 +654,9 @@ const LiveQRPage = () => {
                           )}
                         </div>
                         
-                        {/* Medications Section */}
                         <div className="p-4">
                           <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                            <PillIcon className="h-4 w-4 mr-2 text-green-600" />
+                            <Pill className="h-4 w-4 mr-2 text-green-600" />
                             Current Medications
                           </h4>
                           
@@ -694,7 +671,6 @@ const LiveQRPage = () => {
                           )}
                         </div>
                         
-                        {/* Emergency Profile Section */}
                         <div className="p-4">
                           <h4 className="font-medium text-gray-900 mb-3 flex items-center">
                             <Heart className="h-4 w-4 mr-2 text-red-600" />
@@ -764,7 +740,7 @@ const LiveQRPage = () => {
                             className="flex items-center"
                             onClick={() => navigate('/medications')}
                           >
-                            <PillIcon className="mr-2 h-4 w-4 text-green-500" />
+                            <Pill className="mr-2 h-4 w-4 text-green-500" />
                             Manage Medications
                           </Button>
                           
@@ -787,7 +763,6 @@ const LiveQRPage = () => {
         </div>
       </main>
       
-      {/* QR Code Dialog */}
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -857,7 +832,6 @@ const LiveQRPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Share Dialog */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
