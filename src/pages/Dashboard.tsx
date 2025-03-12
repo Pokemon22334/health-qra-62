@@ -17,11 +17,12 @@ import {
   PillIcon, 
   QrCode,
   Shield,
-  Loader2,
+  Loader,
   Share2,
   RefreshCw,
   AlertTriangle,
-  User
+  User,
+  Heart
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -104,7 +105,7 @@ const Dashboard = () => {
           <div className="text-center">
             {!loadingTimeout ? (
               <>
-                <Loader2 className="h-10 w-10 animate-spin text-medivault-600 mx-auto mb-4" />
+                <Loader className="h-10 w-10 animate-spin text-medivault-600 mx-auto mb-4" />
                 <p className="text-gray-600 mb-2">Loading your dashboard...</p>
                 <p className="text-xs text-gray-500">This should only take a moment</p>
               </>
@@ -119,7 +120,7 @@ const Dashboard = () => {
                   <Button onClick={handleRetry} className="flex items-center" disabled={retryingSession}>
                     {retryingSession ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader className="h-4 w-4 mr-2 animate-spin" />
                         Retrying...
                       </>
                     ) : (
@@ -224,7 +225,7 @@ const Dashboard = () => {
                       onClick={() => navigate('/manage-qr')}
                     >
                       <QrCode className="mr-2 h-5 w-5" />
-                      Manage All QR Codes
+                      Manage QR Codes
                     </Button>
                   </li>
                   <li>
@@ -281,21 +282,21 @@ const Dashboard = () => {
               </div>
             </div>
             
-            <div className="bg-medivault-50 rounded-xl mt-6 p-4 border border-medivault-100">
+            <div className="bg-red-50 rounded-xl mt-6 p-4 border border-red-100">
               <div className="flex items-start mb-2">
-                <QrCode className="h-5 w-5 text-medivault-600 mr-2 mt-0.5" />
-                <h3 className="font-medium text-medivault-900">QR Code Management</h3>
+                <Heart className="h-5 w-5 text-red-600 mr-2 mt-0.5" />
+                <h3 className="font-medium text-red-900">Emergency Profile</h3>
               </div>
-              <p className="text-sm text-medivault-700 mb-3">
-                Manage all your QR codes for secure record sharing with healthcare providers.
+              <p className="text-sm text-red-700 mb-3">
+                Set up your emergency medical profile for quick access in critical situations.
               </p>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="w-full text-medivault-700 border-medivault-200 hover:bg-medivault-100"
-                onClick={() => navigate('/manage-qr')}
+                className="w-full bg-white text-red-700 border-red-200 hover:bg-red-100"
+                onClick={() => navigate('/emergency-profile')}
               >
-                Manage QR Codes
+                Manage Emergency Profile
               </Button>
             </div>
           </div>
@@ -384,15 +385,18 @@ const Dashboard = () => {
                 
                 <TabsContent value="emergency">
                   <div className="bg-white rounded-xl shadow-md p-6">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-6">Emergency Access Profile</h2>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                      <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No emergency profile set up</h3>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                      <Heart className="mr-2 h-5 w-5 text-red-500" />
+                      Emergency Profile
+                    </h2>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+                      <Heart className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Emergency Medical Information</h3>
                       <p className="text-gray-600 mb-4">
-                        Set up your emergency profile to make critical information available in case of emergencies.
+                        Create an emergency profile with critical medical information that can be accessed quickly in emergency situations.
                       </p>
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
+                      <Button onClick={() => navigate('/emergency-profile')} className="bg-red-600 hover:bg-red-700">
+                        <Shield className="mr-2 h-4 w-4" />
                         Set Up Emergency Profile
                       </Button>
                     </div>

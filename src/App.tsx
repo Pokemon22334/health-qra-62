@@ -17,6 +17,8 @@ import SettingsPage from './pages/SettingsPage';
 import NotFound from './pages/NotFound';
 import PublicRecordsPage from './pages/PublicRecordsPage';
 import ManageQR from './pages/ManageQR';
+import EmergencyProfile from './pages/EmergencyProfile';
+import EmergencyAccess from './pages/EmergencyAccess';
 
 import './App.css';
 
@@ -37,6 +39,8 @@ function App() {
           <Route path="/public-records/:qrId" element={<PublicRecordsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/manage-qr" element={<ManageQR />} />
+          <Route path="/emergency-profile" element={<EmergencyProfile />} />
+          <Route path="/emergency-access/:userId" element={<EmergencyAccess />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
