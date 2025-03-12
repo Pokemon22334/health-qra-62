@@ -224,7 +224,7 @@ const Dashboard = () => {
                       onClick={() => navigate('/manage-qr')}
                     >
                       <QrCode className="mr-2 h-5 w-5" />
-                      Manage QR Codes
+                      Manage All QR Codes
                     </Button>
                   </li>
                   <li>
