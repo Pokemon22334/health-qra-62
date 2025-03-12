@@ -32,7 +32,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/scan-qr" element={<ScanQR />} />
-          <Route path="/shared-record/:recordId" element={<SharedRecord />} />
+          <Route path="/shared-record/:id" element={<SharedRecord />} />
           <Route path="/public-records/:qrId" element={<PublicRecordsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />

@@ -75,6 +75,72 @@ export type Database = {
         }
         Relationships: []
       }
+      public_medical_records: {
+        Row: {
+          created_at: string
+          id: string
+          qr_id: string
+          record_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          qr_id: string
+          record_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          qr_id?: string
+          record_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_medical_records_qr_id_fkey"
+            columns: ["qr_id"]
+            isOneToOne: false
+            referencedRelation: "public_qr_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_medical_records_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "health_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_qr_codes: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       qr_code_access: {
         Row: {
           accessed_at: string

@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { QrCode, Download, Share2, Copy, Loader2, Trash2, Clock } from 'lucide-react';
 import { generatePublicQRCode, getUserPublicQRCodes, deactivatePublicQRCode } from '@/lib/utils/publicQrCode';
 
