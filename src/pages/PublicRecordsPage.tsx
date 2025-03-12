@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { HeartPulse, Shield, Loader2, AlertTriangle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import PublicRecordsList from '@/components/PublicRecordsList';
-import { isQRCodeValid } from '@/lib/utils/qrCode';
+import { getPublicQRCodeById } from '@/lib/utils/publicQrCode';
 
 const PublicRecordsPage = () => {
   const { qrId } = useParams<{ qrId: string }>();
@@ -15,10 +15,39 @@ const PublicRecordsPage = () => {
       try {
         if (qrId) {
           setIsLoading(true);
-          const valid = await isQRCodeValid(qrId);
-          console.log('QR code validity check result:', valid);
-          setIsValid(valid);
+          
+          // Use getPublicQRCodeById to check if the QR code exists and is valid
+          const qrCodeData = await getPublicQRCodeById(qrId);
+          
+          console.log('QR code data:', qrCodeData);
+          
+          if (!qrCodeData) {
+            console.error('QR code not found');
+            setIsValid(false);
+            return;
+          }
+          
+          // Check if expired
+          if (qrCodeData.expires_at) {
+            const expiresAt = new Date(qrCodeData.expires_at);
+            if (expiresAt < new Date()) {
+              console.error('QR code has expired:', expiresAt.toISOString());
+              setIsValid(false);
+              return;
+            }
+          }
+          
+          // Check if the QR code is active
+          if (!qrCodeData.is_active) {
+            console.error('QR code is not active');
+            setIsValid(false);
+            return;
+          }
+          
+          console.log('QR code is valid');
+          setIsValid(true);
         } else {
+          console.error('No QR ID provided');
           setIsValid(false);
         }
       } catch (error) {
