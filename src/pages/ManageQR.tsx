@@ -12,7 +12,8 @@ import {
   ArrowLeft,
   Loader2, 
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react';
 
 const ManageQR = () => {

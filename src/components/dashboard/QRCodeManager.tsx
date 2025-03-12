@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -141,7 +140,6 @@ const QRCodeManager = ({ refreshKey = 0, onRefresh }: QRCodeManagerProps) => {
         description: 'The public QR code has been successfully deleted.',
       });
       
-      // Force refresh to ensure sync with server
       handleRefresh();
     } catch (error: any) {
       console.error('Error deleting public QR code:', error);
@@ -221,7 +219,6 @@ const QRCodeManager = ({ refreshKey = 0, onRefresh }: QRCodeManagerProps) => {
       setShowQRDialog(true);
       setQrFormOpen(false);
       
-      // Refresh the list
       if (onRefresh) {
         onRefresh();
       } else {
@@ -333,21 +330,21 @@ const QRCodeManager = ({ refreshKey = 0, onRefresh }: QRCodeManagerProps) => {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => handleCopyLink(qr.shareableUrl)}
-                          className="text-medivault-600"
+                          onClick={() => handleDownloadQR(qr.qrImageUrl, qr.label || 'MediVault')}
+                          className="text-blue-600"
                         >
-                          <Copy className="h-3 w-3 mr-1" />
-                          Copy Link
+                          <Download className="h-3 w-3 mr-1" />
+                          Download QR
                         </Button>
                         
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => handleDownloadQR(qr.qrImageUrl, qr.label || 'MediVault')}
-                          className="text-blue-600"
+                          onClick={() => handleCopyLink(qr.shareableUrl)}
+                          className="text-medivault-600"
                         >
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy Link
                         </Button>
                         
                         <Button 
@@ -381,7 +378,6 @@ const QRCodeManager = ({ refreshKey = 0, onRefresh }: QRCodeManagerProps) => {
         </div>
       )}
 
-      {/* QR Code Generation Form Dialog */}
       <Dialog open={qrFormOpen} onOpenChange={setQrFormOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -532,7 +528,6 @@ const QRCodeManager = ({ refreshKey = 0, onRefresh }: QRCodeManagerProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* QR Code Generated Dialog */}
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
