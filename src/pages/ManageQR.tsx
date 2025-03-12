@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -34,6 +33,13 @@ const ManageQR = () => {
       }
     }
   }, [isLoading, isAuthenticated, navigate, toast]);
+
+  // Add force refresh when component mounts or refresh is triggered
+  useEffect(() => {
+    if (user) {
+      handleRefresh();
+    }
+  }, [user]);
 
   if (isLoading || pageLoading) {
     return (

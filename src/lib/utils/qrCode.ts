@@ -186,6 +186,7 @@ export const revokeQRCode = async (qrId: string, userId: string) => {
 
 export const deleteQRCode = async (qrId: string, userId: string) => {
   try {
+    // First verify ownership
     const { data: qrCode, error: qrError } = await supabase
       .from('qr_codes')
       .select('*')
@@ -194,10 +195,11 @@ export const deleteQRCode = async (qrId: string, userId: string) => {
       .maybeSingle();
     
     if (qrError || !qrCode) {
-      console.error('Error fetching QR code:', qrError);
+      console.error('Error verifying QR code ownership:', qrError);
       throw new Error('QR code not found or you do not have permission to delete it');
     }
     
+    // Delete access logs first
     const { error: accessLogError } = await supabase
       .from('qr_code_access')
       .delete()
@@ -205,8 +207,10 @@ export const deleteQRCode = async (qrId: string, userId: string) => {
     
     if (accessLogError) {
       console.error('Error deleting access logs:', accessLogError);
+      throw accessLogError;
     }
     
+    // Delete the QR code
     const { error: deleteError } = await supabase
       .from('qr_codes')
       .delete()
