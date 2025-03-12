@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -10,7 +11,8 @@ import {
   QrCode, 
   ArrowLeft,
   Loader2, 
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 
 const ManageQR = () => {
@@ -18,6 +20,11 @@ const ManageQR = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [pageLoading, setPageLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  const handleRefresh = () => {
+    setRefreshKey(prevKey => prevKey + 1);
+  };
   
   useEffect(() => {
     if (!isLoading) {
@@ -99,11 +106,20 @@ const ManageQR = () => {
             <QrCode className="h-6 w-6 text-medivault-600 mr-2" />
             <h1 className="text-2xl font-bold text-gray-900">QR Code Management</h1>
           </div>
-          <div className="w-36"></div> {/* Empty div for balance */}
+          <div className="w-36">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              className="flex items-center justify-center"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
         
         <div className="bg-white rounded-xl shadow-md p-6">
-          <QRCodeManager />
+          <QRCodeManager refreshKey={refreshKey} onRefresh={handleRefresh} />
         </div>
       </main>
       

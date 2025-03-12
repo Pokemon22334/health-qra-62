@@ -1,18 +1,13 @@
-
 import { useState } from 'react';
-import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye, QrCode, Loader } from 'lucide-react';
+import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label'; 
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { generateQRCode, deleteQRCode } from '@/lib/utils/qrCode';
+import { deleteQRCode } from '@/lib/utils/qrCode';
 
 interface RecordProps {
   id: string;
@@ -53,11 +48,6 @@ const RecordCard = ({
 }: RecordCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showQRDialog, setShowQRDialog] = useState(false);
-  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
-  const [shareableUrl, setShareableUrl] = useState<string | null>(null);
-  const [expiryHours, setExpiryHours] = useState<number>(24);
-  const [qrGenerating, setQrGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const { icon: TypeIcon, color, bg } = getTypeInfo(record.category);
@@ -207,298 +197,96 @@ const RecordCard = ({
     }
   };
   
-  const handleGenerateQR = async () => {
-    setShowQRDialog(true);
-    setQrImageUrl(null);
-    setShareableUrl(null);
-  };
-  
-  const handleCreateQRCode = async () => {
-    try {
-      setQrGenerating(true);
-      
-      if (!record.user_id) {
-        throw new Error('User ID is missing');
-      }
-      
-      const result = await generateQRCode(record.id, record.user_id, expiryHours);
-      
-      setQrImageUrl(result.qrImageUrl);
-      setShareableUrl(result.shareableUrl);
-      
-      toast({
-        title: "QR Code Generated",
-        description: "The QR code for this record has been created successfully.",
-      });
-      
-      if (onUpdate) {
-        onUpdate();
-      }
-    } catch (error: any) {
-      console.error('Error generating QR code:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate QR code. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setQrGenerating(false);
-    }
-  };
-  
-  const handleDownloadQR = () => {
-    if (!qrImageUrl) return;
-    
-    const link = document.createElement('a');
-    link.href = qrImageUrl;
-    link.download = `${record.title.replace(/\s+/g, '-').toLowerCase()}-qr.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "QR Downloaded",
-      description: "The QR code has been downloaded.",
-    });
-  };
-  
-  const handleCopyLink = () => {
-    if (!shareableUrl) return;
-    
-    navigator.clipboard.writeText(shareableUrl);
-    
-    toast({
-      title: "Link Copied",
-      description: "The shareable link has been copied to clipboard.",
-    });
-  };
-  
   return (
-    <>
-      <Card 
-        className={cn(
-          "overflow-hidden transition-all duration-300 border-gray-100 hover:shadow-md group",
-          isHovered && "border-medivault-200",
-          className
-        )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="p-4 flex gap-4">
-          <div className={cn("w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0", bg)}>
-            <TypeIcon className={cn("w-6 h-6", color)} />
-          </div>
-          
-          <div className="flex-grow min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-gray-900 truncate">{record.title}</h3>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={handleView}
-                    disabled={isLoading}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    <span>{isLoading ? 'Loading...' : 'View'}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={handleDownload}
-                    disabled={isLoading}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    <span>{isLoading ? 'Loading...' : 'Download'}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleGenerateQR}>
-                    <QrCode className="mr-2 h-4 w-4" />
-                    <span>Generate QR Code</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>{isDeleting ? 'Deleting...' : 'Delete QR Codes'}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            
-            <div className="flex items-center text-sm text-gray-500 mt-1">
-              <Calendar className="h-3.5 w-3.5 mr-1" />
-              <span>{format(createdDate, 'MMM d, yyyy')}</span>
-            </div>
-            
-            {record.description && (
-              <p className="text-xs text-gray-500 mt-1 truncate">
-                {record.description}
-              </p>
-            )}
-          </div>
+    <Card 
+      className={cn(
+        "overflow-hidden transition-all duration-300 border-gray-100 hover:shadow-md group",
+        isHovered && "border-medivault-200",
+        className
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="p-4 flex gap-4">
+        <div className={cn("w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0", bg)}>
+          <TypeIcon className={cn("w-6 h-6", color)} />
         </div>
         
-        <CardFooter className="py-2 px-4 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
-          <span>{record.category.replace('_', ' ')}</span>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-7 px-2 text-xs" 
-              onClick={handleView}
-              disabled={isLoading}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              {isLoading ? 'Loading...' : 'View'}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-7 px-2 text-xs" 
-              onClick={handleGenerateQR}
-            >
-              <QrCode className="h-3 w-3 mr-2" />
-              QR Code
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-7 px-2 text-xs" 
-              onClick={handleDownload}
-              disabled={isLoading}
-            >
-              <Download className="h-3 w-3 mr-1" />
-              {isLoading ? 'Loading...' : 'Download'}
-            </Button>
+        <div className="flex-grow min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-medium text-gray-900 truncate">{record.title}</h3>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={handleView}
+                  disabled={isLoading}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  <span>{isLoading ? 'Loading...' : 'View'}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleDownload}
+                  disabled={isLoading}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>{isLoading ? 'Loading...' : 'Download'}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>{isDeleting ? 'Deleting...' : 'Delete QR Codes'}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </CardFooter>
-      </Card>
-      
-      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Generate QR Code</DialogTitle>
-            <DialogDescription>
-              Generate a QR code to share access to this health record.
-            </DialogDescription>
-          </DialogHeader>
           
-          {!qrImageUrl ? (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="expiry">QR Code Expiration</Label>
-                <Select 
-                  defaultValue="24" 
-                  onValueChange={(val) => setExpiryHours(parseInt(val))}
-                >
-                  <SelectTrigger id="expiry">
-                    <SelectValue placeholder="Select expiration time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 hour</SelectItem>
-                    <SelectItem value="6">6 hours</SelectItem>
-                    <SelectItem value="12">12 hours</SelectItem>
-                    <SelectItem value="24">24 hours</SelectItem>
-                    <SelectItem value="48">48 hours</SelectItem>
-                    <SelectItem value="72">72 hours</SelectItem>
-                    <SelectItem value="168">1 week</SelectItem>
-                    <SelectItem value="720">30 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Record Information</Label>
-                <div className="p-3 bg-gray-50 rounded-md text-sm">
-                  <p className="font-medium text-gray-900">{record.title}</p>
-                  <p className="text-gray-600 text-xs mt-1">{record.category.replace('_', ' ')}</p>
-                </div>
-              </div>
-              
-              <DialogFooter className="mt-4 flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowQRDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleCreateQRCode}
-                  disabled={qrGenerating}
-                >
-                  {qrGenerating ? (
-                    <>
-                      <Loader className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <QrCode className="h-4 w-4 mr-2" />
-                      Generate QR Code
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              <div className="flex justify-center p-4">
-                <div className="bg-white p-2 rounded-lg border border-gray-200">
-                  <img src={qrImageUrl} alt="QR Code" className="w-48 h-48" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Shareable Link</Label>
-                <div className="flex">
-                  <Input 
-                    value={shareableUrl || ''} 
-                    readOnly 
-                    className="rounded-r-none"
-                  />
-                  <Button 
-                    variant="secondary" 
-                    className="rounded-l-none" 
-                    onClick={handleCopyLink}
-                  >
-                    Copy
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500">
-                  This QR code will expire in {expiryHours} hour{expiryHours !== 1 ? 's' : ''}.
-                </p>
-              </div>
-              
-              <DialogFooter className="mt-4 flex justify-between">
-                <Button 
-                  variant="outline" 
-                  onClick={handleDownloadQR}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download QR
-                </Button>
-                <Button 
-                  onClick={() => {
-                    setShowQRDialog(false);
-                    setQrImageUrl(null);
-                    setShareableUrl(null);
-                    if (onUpdate) {
-                      onUpdate();
-                    }
-                  }}
-                >
-                  Done
-                </Button>
-              </DialogFooter>
-            </div>
+          <div className="flex items-center text-sm text-gray-500 mt-1">
+            <Calendar className="h-3.5 w-3.5 mr-1" />
+            <span>{format(createdDate, 'MMM d, yyyy')}</span>
+          </div>
+          
+          {record.description && (
+            <p className="text-xs text-gray-500 mt-1 truncate">
+              {record.description}
+            </p>
           )}
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+      </div>
+      
+      <CardFooter className="py-2 px-4 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
+        <span>{record.category.replace('_', ' ')}</span>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs" 
+            onClick={handleView}
+            disabled={isLoading}
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            {isLoading ? 'Loading...' : 'View'}
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 px-2 text-xs" 
+            onClick={handleDownload}
+            disabled={isLoading}
+          >
+            <Download className="h-3 w-3 mr-1" />
+            {isLoading ? 'Loading...' : 'Download'}
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 
