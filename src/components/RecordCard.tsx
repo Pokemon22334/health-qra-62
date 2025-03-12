@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ interface RecordProps {
   file_url: string;
   created_at: string;
   user_id: string;
-  [key: string]: any; // Allow other properties
+  [key: string]: any;
 }
 
 interface RecordCardProps {
@@ -47,114 +46,100 @@ const RecordCard = ({
   onUpdate
 }: RecordCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { icon: TypeIcon, color, bg } = getTypeInfo(record.category);
   const { toast } = useToast();
   
-  // Format the date from string to Date object
   const createdDate = new Date(record.created_at);
+
+  const getFileUrl = async (fileUrl: string) => {
+    try {
+      const urlParts = fileUrl.split('medical_records/');
+      if (urlParts.length !== 2) {
+        throw new Error('Invalid file URL format');
+      }
+      
+      const filePath = urlParts[1];
+      console.log('Attempting to get file:', filePath);
+
+      const { data, error } = await supabase.storage
+        .from('medical_records')
+        .createSignedUrl(filePath, 60);
+
+      if (error) {
+        console.error('Error getting signed URL:', error);
+        throw error;
+      }
+
+      if (!data?.signedUrl) {
+        throw new Error('No signed URL generated');
+      }
+
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error in getFileUrl:', error);
+      throw error;
+    }
+  };
   
   const handleView = async () => {
     try {
+      setIsLoading(true);
+      
       if (!record.file_url) {
-        toast({
-          title: "File Not Available",
-          description: "The file URL is missing or invalid.",
-          variant: "destructive",
-        });
-        return;
+        throw new Error('File URL is missing');
       }
       
-      // Check if the URL is a Supabase storage URL
-      if (record.file_url.includes('supabase')) {
-        // Extract the path from the URL
-        const urlParts = record.file_url.split('/');
-        const fileName = urlParts.slice(urlParts.indexOf('medical_records') + 1).join('/');
-        
-        // Get a fresh public URL
-        const { data } = supabase.storage
-          .from('medical_records')
-          .getPublicUrl(fileName);
-          
-        if (data?.publicUrl) {
-          window.open(data.publicUrl, '_blank');
-        } else {
-          window.open(record.file_url, '_blank');
-        }
-      } else {
-        // Regular URL
-        window.open(record.file_url, '_blank');
-      }
-    } catch (error) {
-      console.error('Error opening file:', error);
+      console.log('Attempting to view file:', record.file_url);
+      const signedUrl = await getFileUrl(record.file_url);
+      window.open(signedUrl, '_blank');
+    } catch (error: any) {
+      console.error('Error viewing file:', error);
       toast({
         title: "Error",
         description: "Failed to open the file. Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const handleDownload = async () => {
     try {
+      setIsLoading(true);
+      
       if (!record.file_url) {
-        toast({
-          title: "File Not Available",
-          description: "The file URL is missing or invalid.",
-          variant: "destructive",
-        });
-        return;
+        throw new Error('File URL is missing');
       }
       
-      // Check if the URL is a Supabase storage URL
-      if (record.file_url.includes('supabase')) {
-        // Extract the path from the URL
-        const urlParts = record.file_url.split('/');
-        const fileName = urlParts.slice(urlParts.indexOf('medical_records') + 1).join('/');
-        const fileNameDisplay = fileName.split('/').pop() || 'file';
-        
-        // Get a fresh public URL
-        const { data } = supabase.storage
-          .from('medical_records')
-          .getPublicUrl(fileName);
-          
-        if (data?.publicUrl) {
-          const link = document.createElement('a');
-          link.href = data.publicUrl;
-          link.download = fileNameDisplay;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        } else {
-          const link = document.createElement('a');
-          link.href = record.file_url;
-          link.download = record.title || 'medical-record';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      } else {
-        // Regular URL
-        const link = document.createElement('a');
-        link.href = record.file_url;
-        link.download = record.title || 'medical-record';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    } catch (error) {
+      const signedUrl = await getFileUrl(record.file_url);
+      
+      const link = document.createElement('a');
+      link.href = signedUrl;
+      link.download = record.title || 'medical-record';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Success",
+        description: "File download started",
+      });
+    } catch (error: any) {
       console.error('Error downloading file:', error);
       toast({
         title: "Error",
         description: "Failed to download the file. Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const handleDelete = () => {
-    // Delete record logic (to be implemented)
     console.log('Delete record:', record.id);
-    // After deletion, trigger update
     if (onUpdate) onUpdate();
   };
   
@@ -183,13 +168,19 @@ const RecordCard = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleView}>
+                <DropdownMenuItem 
+                  onClick={handleView}
+                  disabled={isLoading}
+                >
                   <Eye className="mr-2 h-4 w-4" />
-                  <span>View</span>
+                  <span>{isLoading ? 'Loading...' : 'View'}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownload}>
+                <DropdownMenuItem 
+                  onClick={handleDownload}
+                  disabled={isLoading}
+                >
                   <Download className="mr-2 h-4 w-4" />
-                  <span>Download</span>
+                  <span>{isLoading ? 'Loading...' : 'Download'}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDelete}>
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -220,18 +211,20 @@ const RecordCard = ({
             size="sm" 
             className="h-7 px-2 text-xs" 
             onClick={handleView}
+            disabled={isLoading}
           >
             <Eye className="h-3 w-3 mr-1" />
-            View
+            {isLoading ? 'Loading...' : 'View'}
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
             className="h-7 px-2 text-xs" 
             onClick={handleDownload}
+            disabled={isLoading}
           >
             <Download className="h-3 w-3 mr-1" />
-            Download
+            {isLoading ? 'Loading...' : 'Download'}
           </Button>
         </div>
       </CardFooter>
