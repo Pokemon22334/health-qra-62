@@ -9,6 +9,104 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      emergency_access_logs: {
+        Row: {
+          accessed_at: string
+          id: string
+          ip_address: string | null
+          profile_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          id?: string
+          ip_address?: string | null
+          profile_id: string
+        }
+        Update: {
+          accessed_at?: string
+          id?: string
+          ip_address?: string | null
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_access_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emergency_profiles: {
+        Row: {
+          allergies: string | null
+          blood_type: string | null
+          conditions: string | null
+          created_at: string
+          emergency_contact_1_name: string | null
+          emergency_contact_1_phone: string | null
+          emergency_contact_1_relationship: string | null
+          emergency_contact_2_name: string | null
+          emergency_contact_2_phone: string | null
+          emergency_contact_2_relationship: string | null
+          id: string
+          insurance_number: string | null
+          insurance_provider: string | null
+          medical_notes: string | null
+          medications: string | null
+          primary_physician: string | null
+          primary_physician_phone: string | null
+          surgeries: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allergies?: string | null
+          blood_type?: string | null
+          conditions?: string | null
+          created_at?: string
+          emergency_contact_1_name?: string | null
+          emergency_contact_1_phone?: string | null
+          emergency_contact_1_relationship?: string | null
+          emergency_contact_2_name?: string | null
+          emergency_contact_2_phone?: string | null
+          emergency_contact_2_relationship?: string | null
+          id?: string
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          medical_notes?: string | null
+          medications?: string | null
+          primary_physician?: string | null
+          primary_physician_phone?: string | null
+          surgeries?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allergies?: string | null
+          blood_type?: string | null
+          conditions?: string | null
+          created_at?: string
+          emergency_contact_1_name?: string | null
+          emergency_contact_1_phone?: string | null
+          emergency_contact_1_relationship?: string | null
+          emergency_contact_2_name?: string | null
+          emergency_contact_2_phone?: string | null
+          emergency_contact_2_relationship?: string | null
+          id?: string
+          insurance_number?: string | null
+          insurance_provider?: string | null
+          medical_notes?: string | null
+          medications?: string | null
+          primary_physician?: string | null
+          primary_physician_phone?: string | null
+          surgeries?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       health_records: {
         Row: {
           category: string

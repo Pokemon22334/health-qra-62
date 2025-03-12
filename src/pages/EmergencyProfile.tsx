@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -67,7 +66,6 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
-// Define schema for the emergency profile form
 const emergencyProfileSchema = z.object({
   bloodType: z.string().optional(),
   allergies: z.string().optional(),
@@ -95,17 +93,39 @@ const emergencyProfileSchema = z.object({
 
 type EmergencyProfileFormValues = z.infer<typeof emergencyProfileSchema>;
 
+interface EmergencyProfileData {
+  id: string;
+  user_id: string;
+  blood_type: string | null;
+  allergies: string | null;
+  conditions: string | null;
+  medications: string | null;
+  surgeries: string | null;
+  emergency_contact_1_name: string;
+  emergency_contact_1_phone: string;
+  emergency_contact_1_relationship: string;
+  emergency_contact_2_name: string | null;
+  emergency_contact_2_phone: string | null;
+  emergency_contact_2_relationship: string | null;
+  medical_notes: string | null;
+  insurance_provider: string | null;
+  insurance_number: string | null;
+  primary_physician: string | null;
+  primary_physician_phone: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const EmergencyProfile = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<EmergencyProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [qrCode, setQrCode] = useState<{ qrImageUrl: string; shareableUrl: string } | null>(null);
 
-  // Initialize form with default values
   const form = useForm<EmergencyProfileFormValues>({
     resolver: zodResolver(emergencyProfileSchema),
     defaultValues: {
@@ -128,7 +148,6 @@ const EmergencyProfile = () => {
     },
   });
 
-  // Function to fetch emergency profile data
   const fetchEmergencyProfile = async () => {
     if (!user) return;
     
@@ -143,7 +162,7 @@ const EmergencyProfile = () => {
       
       if (error) {
         console.error('Error fetching emergency profile:', error);
-        if (error.code !== 'PGRST116') { // Not found error is expected for new users
+        if (error.code !== 'PGRST116') {
           toast({
             title: 'Error fetching profile',
             description: 'Could not load your emergency profile.',
@@ -156,7 +175,6 @@ const EmergencyProfile = () => {
       if (data) {
         setProfileData(data);
         
-        // Populate form with existing data
         form.reset({
           bloodType: data.blood_type || '',
           allergies: data.allergies || '',
@@ -183,7 +201,6 @@ const EmergencyProfile = () => {
     }
   };
 
-  // Save emergency profile data
   const saveEmergencyProfile = async (data: EmergencyProfileFormValues) => {
     if (!user) return;
     
@@ -192,36 +209,33 @@ const EmergencyProfile = () => {
       
       const profileData = {
         user_id: user.id,
-        blood_type: data.bloodType,
-        allergies: data.allergies,
-        conditions: data.conditions,
-        medications: data.medications,
-        surgeries: data.surgeries,
+        blood_type: data.bloodType || null,
+        allergies: data.allergies || null,
+        conditions: data.conditions || null,
+        medications: data.medications || null,
+        surgeries: data.surgeries || null,
         emergency_contact_1_name: data.emergencyContact1Name,
         emergency_contact_1_phone: data.emergencyContact1Phone,
         emergency_contact_1_relationship: data.emergencyContact1Relationship,
-        emergency_contact_2_name: data.emergencyContact2Name,
-        emergency_contact_2_phone: data.emergencyContact2Phone,
-        emergency_contact_2_relationship: data.emergencyContact2Relationship,
-        medical_notes: data.medicalNotes,
-        insurance_provider: data.insuranceProvider,
-        insurance_number: data.insuranceNumber,
-        primary_physician: data.primaryPhysician,
-        primary_physician_phone: data.primaryPhysicianPhone,
+        emergency_contact_2_name: data.emergencyContact2Name || null,
+        emergency_contact_2_phone: data.emergencyContact2Phone || null,
+        emergency_contact_2_relationship: data.emergencyContact2Relationship || null,
+        medical_notes: data.medicalNotes || null,
+        insurance_provider: data.insuranceProvider || null,
+        insurance_number: data.insuranceNumber || null,
+        primary_physician: data.primaryPhysician || null,
+        primary_physician_phone: data.primaryPhysicianPhone || null,
         updated_at: new Date().toISOString(),
       };
       
-      // Determine if insert or update is needed
       let result;
       if (profileData?.id) {
-        // Update existing profile
         result = await supabase
           .from('emergency_profiles')
           .update(profileData)
           .eq('id', profileData.id)
           .select();
       } else {
-        // Insert new profile
         result = await supabase
           .from('emergency_profiles')
           .insert(profileData)
@@ -237,7 +251,6 @@ const EmergencyProfile = () => {
         description: 'Your emergency profile has been saved successfully.',
       });
       
-      // Refresh data
       fetchEmergencyProfile();
     } catch (err: any) {
       console.error('Error saving emergency profile:', err);
@@ -251,7 +264,6 @@ const EmergencyProfile = () => {
     }
   };
 
-  // Generate QR code for emergency profile
   const generateEmergencyQRCode = async () => {
     if (!user) return;
     
@@ -259,7 +271,6 @@ const EmergencyProfile = () => {
       const origin = window.location.origin;
       const emergencyUrl = `${origin}/emergency-access/${user.id}`;
       
-      // Generate QR code using external service
       const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(emergencyUrl)}`;
       
       setQrCode({
@@ -278,7 +289,6 @@ const EmergencyProfile = () => {
     }
   };
 
-  // Copy shareable link to clipboard
   const copyShareableLink = async () => {
     if (!qrCode?.shareableUrl) return;
     
@@ -298,7 +308,6 @@ const EmergencyProfile = () => {
     }
   };
 
-  // Download QR code image
   const downloadQRCode = () => {
     if (!qrCode?.qrImageUrl) return;
     
@@ -310,7 +319,6 @@ const EmergencyProfile = () => {
     document.body.removeChild(link);
   };
 
-  // Check authentication and fetch profile data on mount
   useEffect(() => {
     if (isLoading) return;
     
