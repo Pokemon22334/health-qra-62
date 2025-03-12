@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [pageLoading, setPageLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     if (!isLoading) {
@@ -38,9 +39,10 @@ const Dashboard = () => {
         navigate('/login');
       } else {
         setPageLoading(false);
+        setProfile(user);
       }
     }
-  }, [isLoading, isAuthenticated, navigate, toast]);
+  }, [isLoading, isAuthenticated, navigate, toast, user]);
 
   const handleUploadComplete = () => {
     setShowUploadForm(false);
@@ -69,7 +71,7 @@ const Dashboard = () => {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome, {user?.name || 'User'}
+            Welcome, {profile?.name || 'User'}
           </h1>
           <p className="text-gray-600 mt-1">
             Manage your health records and share them securely with your healthcare providers.

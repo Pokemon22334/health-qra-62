@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronDown, LogOut, User } from 'lucide-react';
@@ -13,16 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const NavBar = () => {
   const location = useLocation();
-  const { isMobile } = useMobile();
+  const { isMobile } = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { isAuthenticated, profile, logout } = useAuth();
 
-  // Handle scroll events to change navbar appearance
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -36,7 +34,6 @@ const NavBar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Get the first letter of the user's name for the avatar
   const getInitials = () => {
     if (profile?.name) {
       return profile.name.charAt(0).toUpperCase();
@@ -44,7 +41,6 @@ const NavBar = () => {
     return 'U';
   };
 
-  // Get user role label
   const getRoleLabel = () => {
     if (!profile?.role) return '';
     return profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
@@ -58,7 +54,6 @@ const NavBar = () => {
     >
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="bg-gradient-to-r from-medivault-600 to-medivault-800 text-white font-bold text-xl px-2 py-1 rounded">
               MV
@@ -66,7 +61,6 @@ const NavBar = () => {
             <span className="font-semibold text-xl text-gray-900">MediVault</span>
           </Link>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             <Link 
               to="/" 
@@ -99,7 +93,6 @@ const NavBar = () => {
               About
             </Link>
             
-            {/* Show Dashboard link if authenticated */}
             {isAuthenticated && (
               <>
                 <Link 
@@ -113,7 +106,6 @@ const NavBar = () => {
                   Dashboard
                 </Link>
                 
-                {/* Show Scan QR Code link if user is a doctor */}
                 {profile?.role === 'doctor' && (
                   <Link 
                     to="/scan-qr" 
@@ -130,7 +122,6 @@ const NavBar = () => {
             )}
           </nav>
 
-          {/* Login/Signup or User Menu */}
           <div className="flex items-center space-x-3">
             {isAuthenticated ? (
               <DropdownMenu>
@@ -188,7 +179,6 @@ const NavBar = () => {
               </>
             )}
 
-            {/* Mobile Menu Toggle */}
             {isMobile && (
               <Button 
                 variant="ghost" 
@@ -206,7 +196,6 @@ const NavBar = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isMenuOpen && isMobile && (
           <div className="md:hidden pt-2 pb-4 px-2">
             <nav className="flex flex-col space-y-3">
@@ -244,7 +233,6 @@ const NavBar = () => {
                 About
               </Link>
               
-              {/* Show Dashboard link if authenticated */}
               {isAuthenticated && (
                 <>
                   <Link 
@@ -259,7 +247,6 @@ const NavBar = () => {
                     Dashboard
                   </Link>
                   
-                  {/* Show Scan QR Code link if user is a doctor */}
                   {profile?.role === 'doctor' && (
                     <Link 
                       to="/scan-qr" 
