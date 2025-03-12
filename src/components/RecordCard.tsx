@@ -6,6 +6,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 interface RecordProps {
   id: string;
@@ -46,26 +48,106 @@ const RecordCard = ({
 }: RecordCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const { icon: TypeIcon, color, bg } = getTypeInfo(record.category);
+  const { toast } = useToast();
   
   // Format the date from string to Date object
   const createdDate = new Date(record.created_at);
   
-  const handleView = () => {
-    // Open record file in new tab
-    if (record.file_url) {
-      window.open(record.file_url, '_blank');
+  const handleView = async () => {
+    try {
+      if (!record.file_url) {
+        toast({
+          title: "File Not Available",
+          description: "The file URL is missing or invalid.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if the URL is a Supabase storage URL
+      if (record.file_url.includes('supabase')) {
+        // Extract the path from the URL
+        const urlParts = record.file_url.split('/');
+        const fileName = urlParts.slice(urlParts.indexOf('medical_records') + 1).join('/');
+        
+        // Get a fresh public URL
+        const { data } = supabase.storage
+          .from('medical_records')
+          .getPublicUrl(fileName);
+          
+        if (data?.publicUrl) {
+          window.open(data.publicUrl, '_blank');
+        } else {
+          window.open(record.file_url, '_blank');
+        }
+      } else {
+        // Regular URL
+        window.open(record.file_url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open the file. Please try again later.",
+        variant: "destructive",
+      });
     }
   };
   
-  const handleDownload = () => {
-    // Download file logic
-    if (record.file_url) {
-      const link = document.createElement('a');
-      link.href = record.file_url;
-      link.download = record.title || 'medical-record';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleDownload = async () => {
+    try {
+      if (!record.file_url) {
+        toast({
+          title: "File Not Available",
+          description: "The file URL is missing or invalid.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if the URL is a Supabase storage URL
+      if (record.file_url.includes('supabase')) {
+        // Extract the path from the URL
+        const urlParts = record.file_url.split('/');
+        const fileName = urlParts.slice(urlParts.indexOf('medical_records') + 1).join('/');
+        const fileNameDisplay = fileName.split('/').pop() || 'file';
+        
+        // Get a fresh public URL
+        const { data } = supabase.storage
+          .from('medical_records')
+          .getPublicUrl(fileName);
+          
+        if (data?.publicUrl) {
+          const link = document.createElement('a');
+          link.href = data.publicUrl;
+          link.download = fileNameDisplay;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          const link = document.createElement('a');
+          link.href = record.file_url;
+          link.download = record.title || 'medical-record';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } else {
+        // Regular URL
+        const link = document.createElement('a');
+        link.href = record.file_url;
+        link.download = record.title || 'medical-record';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download the file. Please try again later.",
+        variant: "destructive",
+      });
     }
   };
   

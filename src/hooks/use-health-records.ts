@@ -66,26 +66,32 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       
       // Create folder structure with user ID and timestamp
       const timestamp = Date.now();
-      const fileName = `${user.id}/${timestamp}-${file.name}`;
+      const fileName = `${user.id}/${timestamp}_${file.name.replace(/\s+/g, '_')}`;
       
       console.log('Storage path:', fileName);
       
-      // Upload file with specific options - ensure bucket exists
+      // Check if bucket exists and create if needed (will fail silently if already exists)
+      const { data: bucketData, error: bucketError } = await supabase
+        .storage
+        .createBucket('medical_records', {
+          public: true,
+          fileSizeLimit: 10485760, // 10MB
+        });
+        
+      if (bucketError && !bucketError.message.includes('already exists')) {
+        console.error('Bucket creation error:', bucketError);
+      }
+      
+      // Upload file with specific options
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('medical_records')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: true // Changed to true to allow overwrites if needed
+          upsert: true
         });
         
       if (uploadError) {
         console.error('Upload error details:', uploadError);
-        
-        // Special handling for 404 bucket errors
-        if (uploadError.message.includes('404') || uploadError.message.includes('Bucket not found')) {
-          throw new Error('Storage system error: Medical records storage not available. Please contact support.');
-        }
-        
         throw new Error(`Error uploading file: ${uploadError.message}`);
       }
       
