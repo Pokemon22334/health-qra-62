@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -9,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QrCode, Download, Share2, Copy, Loader2, Trash2, Clock } from 'lucide-react';
-import { generatePublicQRCode, getUserPublicQRCodes, deactivatePublicQRCode } from '@/lib/utils/publicQrCode';
+import { generatePublicQRCode, getUserPublicQRCodes, deletePublicQRCode } from '@/lib/utils/publicQrCode';
 
 const PublicQRCodeGenerator = () => {
   const { user } = useAuth();
@@ -24,7 +23,6 @@ const PublicQRCodeGenerator = () => {
   const [expiry, setExpiry] = useState('never');
   const [customDays, setCustomDays] = useState(30);
 
-  // Load user's existing QR codes
   const loadUserQRCodes = async () => {
     if (!user) return;
     
@@ -44,7 +42,6 @@ const PublicQRCodeGenerator = () => {
     }
   };
 
-  // Generate a new public QR code
   const handleGenerateQR = async () => {
     if (!user) {
       toast({
@@ -58,7 +55,6 @@ const PublicQRCodeGenerator = () => {
     try {
       setIsGenerating(true);
       
-      // Calculate expiry days
       let expiryDays: number | undefined = undefined;
       if (expiry === '7') expiryDays = 7;
       if (expiry === '30') expiryDays = 30;
@@ -70,7 +66,6 @@ const PublicQRCodeGenerator = () => {
       setShowQRDialog(true);
       setQrFormOpen(false);
       
-      // Refresh the list
       await loadUserQRCodes();
       
       toast({
@@ -89,33 +84,28 @@ const PublicQRCodeGenerator = () => {
     }
   };
 
-  // Deactivate a QR code
   const handleDeactivateQR = async (qrId: string) => {
     if (!user) return;
     
     try {
-      await deactivatePublicQRCode(qrId, user.id);
+      await deletePublicQRCode(qrId, user.id);
       
-      // Update the local state
-      setUserQRCodes(prev => 
-        prev.map(qr => qr.id === qrId ? { ...qr, is_active: false } : qr)
-      );
+      setUserQRCodes(prev => prev.filter(qr => qr.id !== qrId));
       
       toast({
-        title: 'QR code deactivated',
-        description: 'The QR code has been deactivated and is no longer accessible.',
+        title: 'QR code deleted',
+        description: 'The QR code has been permanently deleted and is no longer accessible.',
       });
     } catch (error: any) {
-      console.error('Error deactivating QR code:', error);
+      console.error('Error deleting QR code:', error);
       toast({
-        title: 'Failed to deactivate QR code',
-        description: error.message || 'An error occurred while deactivating the QR code.',
+        title: 'Failed to delete QR code',
+        description: error.message || 'An error occurred while deleting the QR code.',
         variant: 'destructive',
       });
     }
   };
 
-  // Download QR code as image
   const handleDownloadQR = (qrImageUrl: string, label: string) => {
     const link = document.createElement('a');
     link.href = qrImageUrl;
@@ -125,7 +115,6 @@ const PublicQRCodeGenerator = () => {
     document.body.removeChild(link);
   };
 
-  // Copy shareable link to clipboard
   const handleCopyLink = (shareableUrl: string) => {
     navigator.clipboard.writeText(shareableUrl);
     toast({
@@ -327,7 +316,6 @@ const PublicQRCodeGenerator = () => {
         </div>
       )}
       
-      {/* QR Code Display Dialog */}
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
