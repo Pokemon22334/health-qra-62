@@ -1,7 +1,5 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,14 +11,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FilePlus, Upload, Loader2 } from 'lucide-react';
+import { useHealthRecords } from '@/hooks/use-health-records';
 
 const RecordUpload = ({ onUploadComplete }: { onUploadComplete?: () => void }) => {
   const { toast } = useToast();
+  const { uploadHealthRecord, isLoading } = useHealthRecords();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<'blood_test' | 'xray_mri' | 'prescription' | 'doctor_note' | 'other'>('other');
   const [file, setFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -40,25 +39,8 @@ const RecordUpload = ({ onUploadComplete }: { onUploadComplete?: () => void }) =
       return;
     }
     
-    setIsLoading(true);
-    
     try {
-      // In a real app, we would upload the file to storage first
-      // and then use the resulting URL for the record
-      // For now, we'll use a mock file URL
-      const mockFileUrl = '/placeholder.svg';
-      
-      await api.uploadRecord({
-        title,
-        description,
-        category,
-        file_url: mockFileUrl,
-      });
-      
-      toast({
-        title: "Record uploaded successfully",
-        description: "Your medical record has been saved securely.",
-      });
+      await uploadHealthRecord(file, title, description, category);
       
       // Reset the form
       setTitle('');
@@ -72,13 +54,7 @@ const RecordUpload = ({ onUploadComplete }: { onUploadComplete?: () => void }) =
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading your record. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      // Error is already handled in the hook
     }
   };
 

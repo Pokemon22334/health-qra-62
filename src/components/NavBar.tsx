@@ -1,149 +1,300 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogIn } from 'lucide-react';
+import { Menu, X, ChevronDown, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/context/AuthContext';
+import { useMobile } from '@/hooks/use-mobile';
 
-export const NavBar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const NavBar = () => {
   const location = useLocation();
-  
+  const { isMobile } = useMobile();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { isAuthenticated, profile, logout } = useAuth();
+
+  // Handle scroll events to change navbar appearance
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location]);
+  // Get the first letter of the user's name for the avatar
+  const getInitials = () => {
+    if (profile?.name) {
+      return profile.name.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  // Get user role label
+  const getRoleLabel = () => {
+    if (!profile?.role) return '';
+    return profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
+  };
 
   return (
-    <nav className={cn(
-      "fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300",
-      isScrolled 
-        ? "bg-white/80 backdrop-blur-md shadow-sm py-3" 
-        : "bg-transparent py-5"
-    )}>
-      <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-medivault-500 rounded-md flex items-center justify-center">
-            <span className="text-white font-bold text-lg">M</span>
-          </div>
-          <span className={cn(
-            "font-semibold text-xl transition-colors",
-            isScrolled ? "text-medivault-800" : "text-medivault-700"
-          )}>
-            MediVault
-          </span>
-        </Link>
-        
-        {/* Desktop menu */}
-        <div className="hidden md:flex items-center space-x-8">
-          <div className="space-x-6">
-            <NavLink href="/" isActive={location.pathname === '/'}>
+    <header 
+      className={`sticky top-0 z-50 w-full ${
+        isScrolled || isMenuOpen ? 'bg-white shadow-sm' : 'bg-transparent'
+      } transition-all duration-200`}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="bg-gradient-to-r from-medivault-600 to-medivault-800 text-white font-bold text-xl px-2 py-1 rounded">
+              MV
+            </div>
+            <span className="font-semibold text-xl text-gray-900">MediVault</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link 
+              to="/" 
+              className={`text-sm font-medium ${
+                location.pathname === '/' 
+                  ? 'text-medivault-600' 
+                  : 'text-gray-700 hover:text-medivault-600'
+              }`}
+            >
               Home
-            </NavLink>
-            <NavLink href="/about" isActive={location.pathname === '/about'}>
-              About
-            </NavLink>
-            <NavLink href="/features" isActive={location.pathname === '/features'}>
+            </Link>
+            <Link 
+              to="/features" 
+              className={`text-sm font-medium ${
+                location.pathname === '/features' 
+                  ? 'text-medivault-600' 
+                  : 'text-gray-700 hover:text-medivault-600'
+              }`}
+            >
               Features
-            </NavLink>
-          </div>
-          
-          <div className="space-x-2 flex items-center">
-            <Button variant="outline" size="sm" className="font-medium" asChild>
-              <Link to="/login">
-                <LogIn className="mr-1.5 h-4 w-4" />
-                Log in
-              </Link>
-            </Button>
-            <Button size="sm" className="font-medium" asChild>
-              <Link to="/signup">
-                <User className="mr-1.5 h-4 w-4" />
-                Sign up
-              </Link>
-            </Button>
+            </Link>
+            <Link 
+              to="/about" 
+              className={`text-sm font-medium ${
+                location.pathname === '/about' 
+                  ? 'text-medivault-600' 
+                  : 'text-gray-700 hover:text-medivault-600'
+              }`}
+            >
+              About
+            </Link>
+            
+            {/* Show Dashboard link if authenticated */}
+            {isAuthenticated && (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className={`text-sm font-medium ${
+                    location.pathname === '/dashboard' 
+                      ? 'text-medivault-600' 
+                      : 'text-gray-700 hover:text-medivault-600'
+                  }`}
+                >
+                  Dashboard
+                </Link>
+                
+                {/* Show Scan QR Code link if user is a doctor */}
+                {profile?.role === 'doctor' && (
+                  <Link 
+                    to="/scan-qr" 
+                    className={`text-sm font-medium ${
+                      location.pathname === '/scan-qr' 
+                        ? 'text-medivault-600' 
+                        : 'text-gray-700 hover:text-medivault-600'
+                    }`}
+                  >
+                    Scan QR Code
+                  </Link>
+                )}
+              </>
+            )}
+          </nav>
+
+          {/* Login/Signup or User Menu */}
+          <div className="flex items-center space-x-3">
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-9 w-9 border-2 border-medivault-100">
+                      <AvatarFallback className="bg-medivault-100 text-medivault-700">
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="font-medium">{profile?.name}</p>
+                      <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                      {profile?.role && (
+                        <div className="text-xs px-2 py-1 bg-medivault-100 text-medivault-700 rounded-full w-min whitespace-nowrap">
+                          {getRoleLabel()}
+                        </div>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  {profile?.role === 'doctor' && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/scan-qr" className="cursor-pointer">
+                        <span className="mr-2">🔍</span>
+                        <span>Scan QR Code</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost">Log in</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button>Sign up</Button>
+                </Link>
+              </>
+            )}
+
+            {/* Mobile Menu Toggle */}
+            {isMobile && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="md:hidden" 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </Button>
+            )}
           </div>
         </div>
-        
-        {/* Mobile menu button */}
-        <button 
-          className="md:hidden text-gray-700 p-2 rounded-md"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-      
-      {/* Mobile menu */}
-      <div className={cn(
-        "md:hidden absolute top-full left-0 right-0 bg-white shadow-lg transition-all duration-300 ease-in-out",
-        isMobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-      )}>
-        <div className="px-4 pb-6 pt-2 space-y-4">
-          <div className="flex flex-col space-y-3">
-            <MobileNavLink href="/" isActive={location.pathname === '/'}>Home</MobileNavLink>
-            <MobileNavLink href="/about" isActive={location.pathname === '/about'}>About</MobileNavLink>
-            <MobileNavLink href="/features" isActive={location.pathname === '/features'}>Features</MobileNavLink>
-          </div>
-          
-          <div className="flex flex-col space-y-2 pt-2 border-t border-gray-100">
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/login">
-                <LogIn className="mr-2 h-4 w-4" />
-                Log in
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && isMobile && (
+          <div className="md:hidden pt-2 pb-4 px-2">
+            <nav className="flex flex-col space-y-3">
+              <Link 
+                to="/" 
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  location.pathname === '/' 
+                    ? 'bg-medivault-50 text-medivault-600' 
+                    : 'text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
               </Link>
-            </Button>
-            <Button className="w-full justify-start" asChild>
-              <Link to="/signup">
-                <User className="mr-2 h-4 w-4" />
-                Sign up
+              <Link 
+                to="/features" 
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  location.pathname === '/features' 
+                    ? 'bg-medivault-50 text-medivault-600' 
+                    : 'text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Features
               </Link>
-            </Button>
+              <Link 
+                to="/about" 
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  location.pathname === '/about' 
+                    ? 'bg-medivault-50 text-medivault-600' 
+                    : 'text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                About
+              </Link>
+              
+              {/* Show Dashboard link if authenticated */}
+              {isAuthenticated && (
+                <>
+                  <Link 
+                    to="/dashboard" 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                      location.pathname === '/dashboard' 
+                        ? 'bg-medivault-50 text-medivault-600' 
+                        : 'text-gray-800 hover:bg-gray-100'
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  
+                  {/* Show Scan QR Code link if user is a doctor */}
+                  {profile?.role === 'doctor' && (
+                    <Link 
+                      to="/scan-qr" 
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        location.pathname === '/scan-qr' 
+                          ? 'bg-medivault-50 text-medivault-600' 
+                          : 'text-gray-800 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Scan QR Code
+                    </Link>
+                  )}
+                  
+                  <div className="pt-2 pb-2">
+                    <div className="border-t border-gray-200"></div>
+                  </div>
+                  
+                  <button
+                    className="px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 text-left"
+                    onClick={() => {
+                      logout();
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Log out
+                  </button>
+                </>
+              )}
+            </nav>
           </div>
-        </div>
+        )}
       </div>
-    </nav>
+    </header>
   );
 };
-
-type NavLinkProps = {
-  href: string;
-  isActive: boolean;
-  children: React.ReactNode;
-};
-
-const NavLink = ({ href, isActive, children }: NavLinkProps) => (
-  <Link
-    to={href}
-    className={cn(
-      "inline-block text-sm font-medium transition-colors hover:text-medivault-600",
-      isActive ? "text-medivault-600" : "text-gray-600"
-    )}
-  >
-    {children}
-  </Link>
-);
-
-const MobileNavLink = ({ href, isActive, children }: NavLinkProps) => (
-  <Link
-    to={href}
-    className={cn(
-      "py-2 px-3 rounded-md text-base font-medium transition-colors",
-      isActive 
-        ? "bg-medivault-50 text-medivault-600"
-        : "text-gray-700 hover:bg-gray-50"
-    )}
-  >
-    {children}
-  </Link>
-);
 
 export default NavBar;

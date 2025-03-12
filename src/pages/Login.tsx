@@ -1,30 +1,38 @@
 
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
-import TwoFactorAuth from "@/components/auth/TwoFactorAuth";
 import LoginForm from "@/components/auth/LoginForm";
 import LoginHero from "@/components/auth/LoginHero";
+import TwoFactorAuth from "@/components/auth/TwoFactorAuth";
 
 const Login = () => {
-  const { toast } = useToast();
-  const [show2FA, setShow2FA] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [showTwoFactorAuth, setShowTwoFactorAuth] = useState(false);
+  
+  // If user is already authenticated, redirect to dashboard
+  if (isAuthenticated) {
+    navigate('/dashboard');
+    return null;
+  }
 
-  const handleSuccessfulLogin = () => {
-    setShow2FA(true);
+  const handleSuccessfulLogin = (requires2FA = false) => {
+    if (requires2FA) {
+      setShowTwoFactorAuth(true);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
-  const handleSuccessful2FA = () => {
-    toast({
-      title: "Login successful",
-      description: "Redirecting to your dashboard...",
-    });
-    
-    // In a real app, we would redirect to the dashboard here
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 1500);
+  const handleTwoFactorSuccess = () => {
+    navigate('/dashboard');
+  };
+
+  const handleCancelTwoFactor = () => {
+    setShowTwoFactorAuth(false);
   };
 
   return (
@@ -32,14 +40,21 @@ const Login = () => {
       <NavBar />
       
       <main className="flex-grow container mx-auto px-4 py-20 md:py-28">
-        {!show2FA ? (
-          <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
-            <LoginHero />
-            <LoginForm onSuccessfulLogin={handleSuccessfulLogin} />
-          </div>
-        ) : (
-          <TwoFactorAuth onSuccess={handleSuccessful2FA} onCancel={() => setShow2FA(false)} />
-        )}
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
+          {showTwoFactorAuth ? (
+            <div className="md:col-span-2">
+              <TwoFactorAuth 
+                onSuccess={handleTwoFactorSuccess} 
+                onCancel={handleCancelTwoFactor}
+              />
+            </div>
+          ) : (
+            <>
+              <LoginHero />
+              <LoginForm onSuccessfulLogin={handleSuccessfulLogin} />
+            </>
+          )}
+        </div>
       </main>
       
       <Footer />
