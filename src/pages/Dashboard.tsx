@@ -242,7 +242,7 @@ const Dashboard = () => {
                     <Button 
                       variant={activeTab === 'medications' ? 'default' : 'ghost'}
                       className="w-full justify-start"
-                      onClick={() => setActiveTab('medications')}
+                      onClick={() => navigate('/medications')}
                     >
                       <PillIcon className="mr-2 h-5 w-5" />
                       Medications
@@ -351,16 +351,22 @@ const Dashboard = () => {
                 
                 <TabsContent value="medications">
                   <div className="bg-white rounded-xl shadow-md p-6">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-6">Your Medications</h2>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-xl font-semibold text-gray-800">Your Medications</h2>
+                      <Button onClick={() => navigate('/medications')}>
+                        <PillIcon className="mr-2 h-4 w-4" />
+                        Manage Medications
+                      </Button>
+                    </div>
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
                       <PillIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No medications added</h3>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Manage your medications</h3>
                       <p className="text-gray-600 mb-4">
-                        You haven't added any medications to track yet.
+                        Track medications, set reminders, and maintain your medication history.
                       </p>
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Medication
+                      <Button onClick={() => navigate('/medications')}>
+                        <PillIcon className="mr-2 h-4 w-4" />
+                        Go to Medications
                       </Button>
                     </div>
                   </div>
