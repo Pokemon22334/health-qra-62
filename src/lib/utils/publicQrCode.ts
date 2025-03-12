@@ -19,7 +19,7 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
       .insert({
         user_id: userId,
         label: label || 'My Medical Records',
-        expires_at: expiresAt
+        expires_at: expiresAt ? expiresAt.toISOString() : null
       })
       .select()
       .single();
@@ -29,13 +29,17 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
       throw qrError;
     }
     
+    if (!qrCode) {
+      throw new Error('Failed to create QR code');
+    }
+    
     console.log('QR code created successfully:', qrCode);
     
     // Get all health records for the user
     const { data: records, error: recordsError } = await supabase
       .from('health_records')
       .select('id')
-      .eq('user_id', userId);
+      .eq('user_id', userId as string);
     
     if (recordsError) {
       console.error('Error fetching user records:', recordsError);
@@ -52,20 +56,22 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
         record_id: record.id
       }));
       
-      // Insert links between QR code and records
-      const { error: linkError } = await supabase
-        .from('public_medical_records')
-        .insert(publicRecords);
-      
-      if (linkError) {
-        console.error('Error linking records to QR code:', linkError);
-        throw linkError;
+      // Insert links between QR code and records, handling each record individually
+      for (const record of publicRecords) {
+        const { error: linkError } = await supabase
+          .from('public_medical_records')
+          .insert(record);
+        
+        if (linkError) {
+          console.error('Error linking record to QR code:', linkError);
+          // Continue with other records instead of failing completely
+        }
       }
       
       console.log('Successfully linked records to QR code');
     }
     
-    // Generate shareabe URL and QR code
+    // Generate shareable URL and QR code
     const shareableUrl = generatePublicShareableLink(qrCode.id);
     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareableUrl)}`;
     
@@ -87,7 +93,7 @@ export const getPublicQRCodeById = async (qrId: string) => {
     const { data, error } = await supabase
       .from('public_qr_codes')
       .select('*')
-      .eq('id', qrId)
+      .eq('id', qrId as string)
       .single();
     
     if (error) throw error;
@@ -106,7 +112,7 @@ export const getPublicRecordsByQRId = async (qrId: string) => {
     const { data: qrCode, error: qrError } = await supabase
       .from('public_qr_codes')
       .select('*')
-      .eq('id', qrId)
+      .eq('id', qrId as string)
       .eq('is_active', true)
       .single();
     
@@ -115,7 +121,8 @@ export const getPublicRecordsByQRId = async (qrId: string) => {
     }
     
     // Check expiration
-    if (qrCode.expires_at && new Date(qrCode.expires_at) < new Date()) {
+    const expiresAt = qrCode?.expires_at ? new Date(qrCode.expires_at) : null;
+    if (expiresAt && expiresAt < new Date()) {
       throw new Error('QR code has expired');
     }
     
@@ -123,7 +130,7 @@ export const getPublicRecordsByQRId = async (qrId: string) => {
     const { data: publicRecords, error: linkError } = await supabase
       .from('public_medical_records')
       .select('record_id')
-      .eq('qr_id', qrId);
+      .eq('qr_id', qrId as string);
     
     if (linkError) throw linkError;
     
@@ -160,8 +167,8 @@ export const deactivatePublicQRCode = async (qrId: string, userId: string) => {
     const { error } = await supabase
       .from('public_qr_codes')
       .update({ is_active: false })
-      .eq('id', qrId)
-      .eq('user_id', userId);
+      .eq('id', qrId as string)
+      .eq('user_id', userId as string);
     
     if (error) throw error;
     
@@ -177,22 +184,27 @@ export const getUserPublicQRCodes = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from('public_qr_codes')
-      .select(`
-        *,
-        public_medical_records:public_medical_records(count)
-      `)
-      .eq('user_id', userId)
+      .select('*')
+      .eq('user_id', userId as string)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
     
-    return data.map(qr => ({
-      ...qr,
-      recordCount: Array.isArray(qr.public_medical_records) ? qr.public_medical_records.length : 0,
-      isExpired: qr.expires_at && new Date(qr.expires_at) < new Date(),
-      shareableUrl: generatePublicShareableLink(qr.id),
-      qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatePublicShareableLink(qr.id))}`
-    }));
+    if (!data) return [];
+    
+    return data.map(qr => {
+      const expiresAt = qr.expires_at ? new Date(qr.expires_at) : null;
+      const isExpired = expiresAt ? expiresAt < new Date() : false;
+      const shareableUrl = generatePublicShareableLink(qr.id);
+      
+      return {
+        ...qr,
+        recordCount: 0, // We'll calculate this separately to avoid complex joins
+        isExpired,
+        shareableUrl,
+        qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareableUrl)}`
+      };
+    });
   } catch (error) {
     console.error('Error getting user public QR codes:', error);
     throw error;

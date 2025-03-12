@@ -5,7 +5,7 @@ import type { Database } from '@/types/supabase';
 const supabaseUrl = 'https://tzitipccwgcgkdbdruhu.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6aXRpcGNjd2djZ2tkYmRydWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2ODQ1NTIsImV4cCI6MjA1NzI2MDU1Mn0.Egr2unnxxmuz5lgFxcnFB8NWoibXRlk7ayFD1kUvzXA';
 
-// Initialize the Supabase client with storage configuration
+// Initialize the Supabase client
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false,
@@ -17,10 +17,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     headers: {
       'X-Client-Info': 'medivault-web'
     },
-  },
-  // Add storage configuration
-  storage: {
-    multipart_upload_threshold: 100 * 1024 * 1024, // 100MB
   }
 });
 

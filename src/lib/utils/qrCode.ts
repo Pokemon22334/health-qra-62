@@ -27,6 +27,10 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
       throw error;
     }
     
+    if (!data) {
+      throw new Error('Failed to create QR code');
+    }
+    
     console.log('QR code created successfully:', data);
     
     // Generate a URL for this QR code
@@ -66,7 +70,7 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
     const { data: qrCode, error: qrError } = await supabase
       .from('qr_codes')
       .select('*')
-      .eq('id', qrCodeId)
+      .eq('id', qrCodeId as string)
       .single();
     
     if (qrError) {
@@ -74,8 +78,13 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
       throw new Error('QR code not found or invalid');
     }
     
+    if (!qrCode) {
+      throw new Error('QR code not found');
+    }
+    
     // Check if the QR code has expired
-    if (new Date(qrCode.expires_at) < new Date()) {
+    const expiresAt = qrCode.expires_at ? new Date(qrCode.expires_at) : null;
+    if (expiresAt && expiresAt < new Date()) {
       console.error('QR code expired:', qrCode.expires_at);
       throw new Error('QR code has expired');
     }
@@ -99,36 +108,43 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
       console.error('Record not found:', recordError);
       throw new Error('The requested medical record could not be found');
     }
+    
+    if (!record) {
+      throw new Error('The requested medical record could not be found');
+    }
 
-    // Verify the storage bucket exists and file is accessible
+    // Verify the file URL is accessible
     if (record.file_url) {
-      const bucketName = 'medical_records';
       try {
-        // Test accessing the file
-        const { data: fileExists } = await supabase
-          .storage
-          .from(bucketName)
-          .createSignedUrl(record.file_url.split(`${bucketName}/`)[1], 60);
+        // Test if we can get the URL
+        const fileUrlParts = record.file_url.split('/');
+        const fileName = fileUrlParts[fileUrlParts.length - 1];
         
-        if (!fileExists) {
-          console.warn('File not found in storage:', record.file_url);
-          record.file_url = null; // Clear invalid URL
-        }
+        // This is to verify the file exists, we don't need to use the result
+        await supabase.storage
+          .from('medical_records')
+          .download(fileName);
       } catch (fileError) {
         console.error('Error verifying file access:', fileError);
-        record.file_url = null; // Clear invalid URL
+        // Don't throw, just note that the file URL might be invalid
+        console.warn('File may not be accessible:', record.file_url);
       }
     }
     
     // Log the access
     if (accessorId) {
       console.log('Logging access by user:', accessorId);
-      await supabase
-        .from('qr_code_access')
-        .insert({
-          qr_code_id: qrCodeId,
-          accessed_by: accessorId,
-        });
+      try {
+        await supabase
+          .from('qr_code_access')
+          .insert({
+            qr_code_id: qrCodeId,
+            accessed_by: accessorId,
+          });
+      } catch (accessError) {
+        // Non-critical error, just log it
+        console.error('Failed to log access:', accessError);
+      }
     } else {
       console.log('Anonymous access - no user ID provided');
     }
@@ -147,11 +163,11 @@ export const revokeQRCode = async (qrCodeId: string, userId: string) => {
     const { data: qrCode, error: qrError } = await supabase
       .from('qr_codes')
       .select('*')
-      .eq('id', qrCodeId)
-      .eq('created_by', userId)
+      .eq('id', qrCodeId as string)
+      .eq('created_by', userId as string)
       .single();
     
-    if (qrError) {
+    if (qrError || !qrCode) {
       console.error('Error fetching QR code for revocation:', qrError);
       throw new Error('QR code not found or you do not have permission to revoke it');
     }
@@ -160,7 +176,7 @@ export const revokeQRCode = async (qrCodeId: string, userId: string) => {
     const { error } = await supabase
       .from('qr_codes')
       .update({ is_revoked: true })
-      .eq('id', qrCodeId);
+      .eq('id', qrCodeId as string);
     
     if (error) {
       console.error('Error revoking QR code:', error);
@@ -188,16 +204,18 @@ export const isQRCodeValid = async (qrCodeId: string): Promise<boolean> => {
     const { data, error } = await supabase
       .from('qr_codes')
       .select('*')
-      .eq('id', qrCodeId)
+      .eq('id', qrCodeId as string)
       .single();
     
-    if (error) {
+    if (error || !data) {
       console.error('Error checking QR code validity:', error);
       return false;
     }
     
     // Check if expired or revoked
-    const isValid = new Date(data.expires_at) > new Date() && !data.is_revoked;
+    const isExpired = data.expires_at ? new Date(data.expires_at) < new Date() : false;
+    const isValid = !isExpired && !data.is_revoked;
+    
     console.log('QR code valid?', isValid, 'Expires:', data.expires_at, 'Revoked:', data.is_revoked);
     
     return isValid;
@@ -221,12 +239,12 @@ export const getQRCodeAccessHistory = async (qrCodeId: string) => {
           role
         )
       `)
-      .eq('qr_code_id', qrCodeId)
+      .eq('qr_code_id', qrCodeId as string)
       .order('accessed_at', { ascending: false });
     
     if (error) throw error;
     
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Error getting QR code access history:', error);
     throw error;

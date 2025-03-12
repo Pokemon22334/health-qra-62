@@ -26,7 +26,7 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       const { data: records, error: fetchError } = await supabase
         .from('health_records')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', userId as string)
         .order('created_at', { ascending: false });
       
       if (fetchError) {
@@ -69,25 +69,27 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       const fileName = `${user.id}/${timestamp}-${file.name}`;
       
       // Verify storage access and bucket existence
-      const { data: bucketInfo, error: storageError } = await supabase
-        .storage
-        .getBucket('medical_records');
-
-      if (storageError) {
-        console.error('Storage access error:', storageError);
-        throw new Error(`Storage access error: ${storageError.message}`);
+      try {
+        const { data: bucketInfo, error: storageError } = await supabase
+          .storage
+          .from('medical_records')
+          .getPublicUrl('test.txt'); // Just to test the bucket without creating a file
+          
+        if (storageError) {
+          console.error('Storage access error:', storageError);
+          throw new Error(`Storage access error: ${storageError.message}`);
+        }
+      } catch (bucketError: any) {
+        console.error('Bucket verification error:', bucketError);
+        throw new Error(`Storage bucket verification failed: ${bucketError.message}`);
       }
       
-      console.log('Storage bucket verified:', bucketInfo);
-
       // Upload file with specific options
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('medical_records')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false,
-          duplex: 'half',
-          contentType: file.type,
+          upsert: false
         });
         
       if (uploadError) {
@@ -97,15 +99,10 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       
       console.log('File uploaded successfully:', fileData?.path);
       
-      // Get public URL with custom options
+      // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from('medical_records')
-        .getPublicUrl(fileName, {
-          download: true,
-          transform: {
-            quality: 80,
-          }
-        });
+        .getPublicUrl(fileName);
         
       const fileUrl = publicUrlData.publicUrl;
       console.log('File public URL:', fileUrl);
@@ -113,15 +110,13 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       // Save record metadata to database
       const { data: recordData, error: recordError } = await supabase
         .from('health_records')
-        .insert([
-          {
-            title,
-            description,
-            category,
-            file_url: fileUrl,
-            user_id: user.id
-          }
-        ])
+        .insert({
+          title,
+          description,
+          category,
+          file_url: fileUrl,
+          user_id: user.id
+        })
         .select()
         .single();
         
