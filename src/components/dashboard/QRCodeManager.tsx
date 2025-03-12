@@ -13,11 +13,13 @@ import {
   Clock, 
   FileText,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  Ban
 } from 'lucide-react';
 import { 
   getUserQRCodes, 
-  revokeQRCode, 
+  revokeQRCode,
+  deleteQRCode,
   restoreQRCode,
   generateShareableLink,
   formatExpirationTime
@@ -80,25 +82,54 @@ const QRCodeManager = () => {
     setRefreshKey(prevKey => prevKey + 1);
   };
 
-  const handleDeleteSingleQR = async (qrId: string) => {
+  const handleRevokeQR = async (qrId: string) => {
     if (!user) return;
     
     try {
       const result = await revokeQRCode(qrId, user.id);
       
       if (result) {
+        setSingleQRCodes(prev => prev.map(qr => 
+          qr.id === qrId ? {
+            ...qr,
+            is_revoked: true
+          } : qr
+        ));
+        
+        toast({
+          title: 'QR code revoked',
+          description: 'The QR code has been successfully revoked and is no longer valid.',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error revoking QR code:', error);
+      toast({
+        title: 'Failed to revoke QR code',
+        description: error.message || 'An error occurred while revoking the QR code.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteSingleQR = async (qrId: string) => {
+    if (!user) return;
+    
+    try {
+      const result = await deleteQRCode(qrId, user.id);
+      
+      if (result) {
         setSingleQRCodes(prev => prev.filter(qr => qr.id !== qrId));
         
         toast({
-          title: 'QR code deleted',
-          description: 'The QR code has been successfully deleted.',
+          title: 'QR code removed',
+          description: 'The QR code has been successfully removed.',
         });
       }
     } catch (error: any) {
       console.error('Error deleting QR code:', error);
       toast({
-        title: 'Failed to delete QR code',
-        description: error.message || 'An error occurred while deleting the QR code.',
+        title: 'Failed to remove QR code',
+        description: error.message || 'An error occurred while removing the QR code.',
         variant: 'destructive',
       });
     }
@@ -266,7 +297,17 @@ const QRCodeManager = () => {
                               Download
                             </Button>
                             
-                            {(qr.isExpired || qr.is_revoked) ? (
+                            {qr.is_revoked ? (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleRestoreQR(qr.id)}
+                                className="text-green-600"
+                              >
+                                <RotateCcw className="h-3 w-3 mr-1" />
+                                Restore
+                              </Button>
+                            ) : qr.isExpired ? (
                               <Button 
                                 size="sm" 
                                 variant="outline"
@@ -280,13 +321,23 @@ const QRCodeManager = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => handleDeleteSingleQR(qr.id)}
-                                className="text-red-600"
+                                onClick={() => handleRevokeQR(qr.id)}
+                                className="text-orange-600"
                               >
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                Delete
+                                <Ban className="h-3 w-3 mr-1" />
+                                Revoke
                               </Button>
                             )}
+                            
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDeleteSingleQR(qr.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Remove
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -410,3 +461,4 @@ const QRCodeManager = () => {
 };
 
 export default QRCodeManager;
+

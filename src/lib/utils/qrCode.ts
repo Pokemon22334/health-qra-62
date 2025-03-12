@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 // Generate a QR code for a health record
@@ -171,7 +172,7 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
   }
 };
 
-// Revoke a QR code (and now also delete it)
+// Revoke a QR code without deleting it
 export const revokeQRCode = async (qrId: string, userId: string) => {
   try {
     // Check if the user owns this QR code
@@ -185,6 +186,42 @@ export const revokeQRCode = async (qrId: string, userId: string) => {
     if (qrError || !qrCode) {
       console.error('Error fetching QR code for revocation:', qrError);
       throw new Error('QR code not found or you do not have permission to revoke it');
+    }
+    
+    // Update the QR code to set is_revoked to true
+    const { error: updateError } = await supabase
+      .from('qr_codes')
+      .update({ is_revoked: true })
+      .eq('id', qrId)
+      .eq('created_by', userId);
+    
+    if (updateError) {
+      console.error('Error revoking QR code:', updateError);
+      throw updateError;
+    }
+    
+    console.log('QR code revoked successfully:', qrId);
+    return true;
+  } catch (error) {
+    console.error('Error revoking QR code:', error);
+    throw error;
+  }
+};
+
+// Delete a QR code and its access logs
+export const deleteQRCode = async (qrId: string, userId: string) => {
+  try {
+    // Check if the user owns this QR code
+    const { data: qrCode, error: qrError } = await supabase
+      .from('qr_codes')
+      .select('*')
+      .eq('id', qrId)
+      .eq('created_by', userId)
+      .maybeSingle();
+    
+    if (qrError || !qrCode) {
+      console.error('Error fetching QR code for deletion:', qrError);
+      throw new Error('QR code not found or you do not have permission to delete it');
     }
     
     // First, delete any access logs associated with this QR code
@@ -213,7 +250,7 @@ export const revokeQRCode = async (qrId: string, userId: string) => {
     console.log('QR code deleted successfully:', qrId);
     return true;
   } catch (error) {
-    console.error('Error revoking/deleting QR code:', error);
+    console.error('Error deleting QR code:', error);
     throw error;
   }
 };

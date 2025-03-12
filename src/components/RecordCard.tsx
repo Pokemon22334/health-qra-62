@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye, QrCode, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -299,7 +298,7 @@ const RecordCard = ({
               className="h-7 px-2 text-xs" 
               onClick={handleGenerateQR}
             >
-              <QrCode className="h-3 w-3 mr-1" />
+              <QrCode className="h-3 w-3 mr-2" />
               QR Code
             </Button>
             <Button 
