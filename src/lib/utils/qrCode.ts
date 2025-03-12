@@ -173,34 +173,45 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
 };
 
 // Revoke a QR code (and now also delete it)
-export const revokeQRCode = async (qrCodeId: string, userId: string) => {
+export const revokeQRCode = async (qrId: string, userId: string) => {
   try {
     // Check if the user owns this QR code
     const { data: qrCode, error: qrError } = await supabase
       .from('qr_codes')
       .select('*')
-      .eq('id', qrCodeId as string)
-      .eq('created_by', userId as string)
-      .single();
+      .eq('id', qrId)
+      .eq('created_by', userId)
+      .maybeSingle();
     
     if (qrError || !qrCode) {
       console.error('Error fetching QR code for revocation:', qrError);
       throw new Error('QR code not found or you do not have permission to revoke it');
     }
     
-    // Delete the QR code instead of just revoking it
-    const { error } = await supabase
-      .from('qr_codes')
+    // First, delete any access logs associated with this QR code
+    const { error: accessLogError } = await supabase
+      .from('qr_code_access')
       .delete()
-      .eq('id', qrCodeId as string);
+      .eq('qr_code_id', qrId);
     
-    if (error) {
-      console.error('Error deleting QR code:', error);
-      throw error;
+    if (accessLogError) {
+      console.error('Error deleting QR code access logs:', accessLogError);
+      // Continue with deletion attempt even if access log deletion fails
     }
     
-    console.log('QR code deleted successfully:', qrCodeId);
+    // Now delete the QR code itself
+    const { error: deleteError } = await supabase
+      .from('qr_codes')
+      .delete()
+      .eq('id', qrId)
+      .eq('created_by', userId);
     
+    if (deleteError) {
+      console.error('Error deleting QR code:', deleteError);
+      throw deleteError;
+    }
+    
+    console.log('QR code deleted successfully:', qrId);
     return true;
   } catch (error) {
     console.error('Error revoking/deleting QR code:', error);
