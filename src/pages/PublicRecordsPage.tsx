@@ -1,10 +1,35 @@
 
-import { HeartPulse, Shield } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { HeartPulse, Shield, Loader2, AlertTriangle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import PublicRecordsList from '@/components/PublicRecordsList';
+import { isQRCodeValid } from '@/lib/utils/qrCode';
 
 const PublicRecordsPage = () => {
   const { qrId } = useParams<{ qrId: string }>();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    const checkQRCodeValidity = async () => {
+      try {
+        if (qrId) {
+          setIsLoading(true);
+          const valid = await isQRCodeValid(qrId);
+          setIsValid(valid);
+        } else {
+          setIsValid(false);
+        }
+      } catch (error) {
+        console.error('Error checking QR code validity:', error);
+        setIsValid(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkQRCodeValidity();
+  }, [qrId]);
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -19,28 +44,46 @@ const PublicRecordsPage = () => {
       
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Shared Medical Information
-            </h1>
-            <p className="text-gray-600 mb-4">
-              This medical information has been securely shared with you.
-            </p>
-            
-            <PublicRecordsList />
-          </div>
-          
-          <div className="bg-medivault-50 rounded-lg border border-medivault-100 p-4 text-sm text-medivault-700 flex items-start">
-            <Shield className="h-5 w-5 text-medivault-600 mr-2 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium text-medivault-800">Secure Sharing</p>
-              <p>
-                MediVault ensures all shared records are securely accessible.
-                No login is required to view these specific records. For more information,
-                visit <Link to="/" className="text-medivault-600 hover:underline">MediVault</Link>.
+          {isLoading ? (
+            <div className="bg-white rounded-xl shadow-md p-8 mb-6 flex flex-col items-center justify-center">
+              <Loader2 className="h-10 w-10 animate-spin text-medivault-600 mb-4" />
+              <p className="text-gray-600">Checking record access...</p>
+            </div>
+          ) : isValid === false ? (
+            <div className="bg-white rounded-xl shadow-md p-8 mb-6 flex flex-col items-center justify-center">
+              <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Invalid or Expired QR Code</h2>
+              <p className="text-gray-600 text-center max-w-md">
+                This QR code is either invalid, has expired, or has been revoked by the owner.
+                Please contact the person who shared this with you for an updated link.
               </p>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Shared Medical Information
+                </h1>
+                <p className="text-gray-600 mb-4">
+                  This medical information has been securely shared with you.
+                </p>
+                
+                <PublicRecordsList />
+              </div>
+              
+              <div className="bg-medivault-50 rounded-lg border border-medivault-100 p-4 text-sm text-medivault-700 flex items-start">
+                <Shield className="h-5 w-5 text-medivault-600 mr-2 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-medivault-800">Secure Sharing</p>
+                  <p>
+                    MediVault ensures all shared records are securely accessible.
+                    No login is required to view these specific records. For more information,
+                    visit <Link to="/" className="text-medivault-600 hover:underline">MediVault</Link>.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
       

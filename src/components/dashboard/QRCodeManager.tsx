@@ -48,13 +48,19 @@ const QRCodeManager = () => {
         setIsLoading(true);
         
         const individualCodes = await getUserQRCodes(user.id);
-        setSingleQRCodes(individualCodes.map(qrCode => {
-          // Fix the expiration check to compare with the current time correctly
+        
+        // Process the individual QR codes to check expiration properly
+        const processedIndividualCodes = individualCodes.map(qrCode => {
+          // Parse expiry date and compare with current time
           const expiryDate = new Date(qrCode.expires_at);
-          const isExpired = expiryDate < new Date();
+          const now = new Date();
+          const isExpired = expiryDate < now;
           
+          // Generate shareable URL and QR image URL
           const shareableUrl = generateShareableLink(qrCode.id);
           const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareableUrl)}`;
+          
+          console.log(`QR Code ${qrCode.id} - Expires: ${expiryDate.toISOString()}, Now: ${now.toISOString()}, Expired: ${isExpired}`);
           
           return {
             ...qrCode,
@@ -62,7 +68,9 @@ const QRCodeManager = () => {
             shareableUrl,
             qrImageUrl
           };
-        }));
+        });
+        
+        setSingleQRCodes(processedIndividualCodes);
         
         const publicCodes = await getUserPublicQRCodes(user.id);
         setPublicQRCodes(publicCodes);
@@ -146,6 +154,11 @@ const QRCodeManager = () => {
       const result = await restoreQRCode(qrId, user.id, 24);
       
       if (result) {
+        // Calculate the new expiry timestamp
+        const now = new Date();
+        const expiryDate = new Date(now);
+        expiryDate.setHours(expiryDate.getHours() + 24);
+        
         setSingleQRCodes(prev => prev.map(qr => 
           qr.id === qrId ? {
             ...qr,
@@ -256,6 +269,11 @@ const QRCodeManager = () => {
                               Revoked
                             </span>
                           )}
+                          {!qr.isExpired && !qr.is_revoked && (
+                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full ml-2">
+                              Active
+                            </span>
+                          )}
                           {qr.health_records?.category && (
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full ml-2">
                               {qr.health_records.category.replace('_', ' ')}
@@ -319,7 +337,7 @@ const QRCodeManager = () => {
                                 className="text-green-600"
                               >
                                 <RotateCcw className="h-3 w-3 mr-1" />
-                                Restore
+                                Renew
                               </Button>
                             ) : (
                               <Button 
@@ -384,6 +402,11 @@ const QRCodeManager = () => {
                           {qr.isExpired && (
                             <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
                               Expired
+                            </span>
+                          )}
+                          {qr.is_active && !qr.isExpired && (
+                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                              Active
                             </span>
                           )}
                         </div>

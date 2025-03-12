@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { FileText, Calendar, Download, MoreVertical, File, Trash2, Edit, Eye, QrCode, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -156,20 +157,34 @@ const RecordCard = ({
       
       const { data: qrCodes, error: fetchError } = await supabase
         .from('qr_codes')
-        .select('*')
+        .select('id')
         .eq('record_id', record.id);
       
       if (fetchError) throw fetchError;
       
       if (qrCodes && qrCodes.length > 0) {
-        for (const qrCode of qrCodes) {
-          await deleteQRCode(qrCode.id, record.user_id);
-        }
+        // Track success/failure for each deletion
+        const deletionPromises = qrCodes.map(qrCode => 
+          deleteQRCode(qrCode.id, record.user_id)
+            .then(() => ({ id: qrCode.id, success: true }))
+            .catch(error => ({ id: qrCode.id, success: false, error }))
+        );
         
-        toast({
-          title: "Success",
-          description: "QR code(s) deleted successfully",
-        });
+        const results = await Promise.all(deletionPromises);
+        const successCount = results.filter(r => r.success).length;
+        
+        if (successCount === qrCodes.length) {
+          toast({
+            title: "Success",
+            description: `Deleted ${successCount} QR code${successCount !== 1 ? 's' : ''}`,
+          });
+        } else {
+          toast({
+            title: "Partial Success",
+            description: `Deleted ${successCount} of ${qrCodes.length} QR codes`,
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Information",
@@ -308,7 +323,7 @@ const RecordCard = ({
                     className="text-red-600 focus:text-red-600"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
+                    <span>{isDeleting ? 'Deleting...' : 'Delete QR Codes'}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -471,6 +486,9 @@ const RecordCard = ({
                     setShowQRDialog(false);
                     setQrImageUrl(null);
                     setShareableUrl(null);
+                    if (onUpdate) {
+                      onUpdate();
+                    }
                   }}
                 >
                   Done

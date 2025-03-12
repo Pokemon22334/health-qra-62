@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 export const generateQRCode = async (recordId: string, userId: string, expiryHours: number = 24) => {
@@ -333,10 +334,13 @@ export const isQRCodeValid = async (qrCodeId: string): Promise<boolean> => {
     const qrCode = data[0];
     
     // Check if expired or revoked
-    const isExpired = qrCode.expires_at ? new Date(qrCode.expires_at) < new Date() : false;
+    const expiresAt = new Date(qrCode.expires_at);
+    const now = new Date();
+    const isExpired = expiresAt < now;
     const isValid = !isExpired && !qrCode.is_revoked;
     
     console.log('QR code valid?', isValid, 'Expires:', qrCode.expires_at, 'Revoked:', qrCode.is_revoked);
+    console.log('Current time:', now.toISOString(), 'Expiry time:', expiresAt.toISOString());
     
     return isValid;
   } catch (error) {
