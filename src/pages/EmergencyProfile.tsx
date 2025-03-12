@@ -70,6 +70,15 @@ const EmergencyProfile = () => {
     }
   });
 
+  const generateShareableLinks = (userId: string) => {
+    const origin = window.location.origin;
+    const url = `${origin}/emergency-access/${userId}`;
+    setShareableUrl(url);
+    
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+    setQrImageUrl(qrUrl);
+  };
+
   useEffect(() => {
     if (!user) {
       navigate('/login', { state: { from: '/emergency-profile' } });
@@ -126,23 +135,9 @@ const EmergencyProfile = () => {
 
   useEffect(() => {
     if (user) {
-      const origin = window.location.origin;
-      const url = `${origin}/emergency-access/${user.id}`;
-      setShareableUrl(url);
-      
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-      setQrImageUrl(qrUrl);
+      generateShareableLinks(user.id);
     }
   }, [user]);
-
-  const generateShareableLinks = (userId: string) => {
-    const origin = window.location.origin;
-    const url = `${origin}/emergency-access/${userId}`;
-    setShareableUrl(url);
-    
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-    setQrImageUrl(qrUrl);
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
