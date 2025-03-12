@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -207,7 +208,7 @@ const EmergencyProfile = () => {
     try {
       setSaving(true);
       
-      const profileData = {
+      const profileDataToSave = {
         user_id: user.id,
         blood_type: data.bloodType || null,
         allergies: data.allergies || null,
@@ -229,16 +230,18 @@ const EmergencyProfile = () => {
       };
       
       let result;
-      if (profileData?.id) {
+      if (profileData) {
+        // Update existing profile
         result = await supabase
           .from('emergency_profiles')
-          .update(profileData)
+          .update(profileDataToSave)
           .eq('id', profileData.id)
           .select();
       } else {
+        // Insert new profile
         result = await supabase
           .from('emergency_profiles')
-          .insert(profileData)
+          .insert(profileDataToSave)
           .select();
       }
       
