@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 // Generate a public QR code for all user's health records
@@ -223,23 +224,49 @@ export const generatePublicShareableLink = (qrId: string): string => {
   return `${origin}/public-records/${qrId}`;
 };
 
-// Deactivate a public QR code
-export const deactivatePublicQRCode = async (qrId: string, userId: string) => {
+// Delete a public QR code (changed from deactivate)
+export const deletePublicQRCode = async (qrId: string, userId: string) => {
   try {
+    // Verify ownership first
+    const { data: qrCode, error: verifyError } = await supabase
+      .from('public_qr_codes')
+      .select('id')
+      .eq('id', qrId)
+      .eq('user_id', userId)
+      .single();
+      
+    if (verifyError || !qrCode) {
+      console.error('Error verifying QR code ownership:', verifyError);
+      throw new Error('QR code not found or you do not have permission to delete it');
+    }
+    
+    // Delete related records first (to maintain referential integrity)
+    const { error: linkError } = await supabase
+      .from('public_medical_records')
+      .delete()
+      .eq('qr_id', qrId);
+      
+    if (linkError) {
+      console.error('Error deleting QR code record links:', linkError);
+      // Continue with deletion attempt even if link deletion fails
+    }
+    
+    // Delete the QR code
     const { error } = await supabase
       .from('public_qr_codes')
-      .update({ is_active: false })
+      .delete()
       .eq('id', qrId)
       .eq('user_id', userId);
     
     if (error) {
-      console.error('Error deactivating QR code:', error);
+      console.error('Error deleting QR code:', error);
       throw error;
     }
     
+    console.log('Public QR code deleted successfully:', qrId);
     return true;
   } catch (error) {
-    console.error('Error deactivating public QR code:', error);
+    console.error('Error deleting public QR code:', error);
     throw error;
   }
 };

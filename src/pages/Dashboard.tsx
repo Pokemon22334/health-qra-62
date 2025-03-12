@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -7,6 +8,7 @@ import Footer from '@/components/Footer';
 import RecordUpload from '@/components/dashboard/RecordUpload';
 import HealthRecordsList from '@/components/dashboard/HealthRecordsList';
 import PublicQRCodeGenerator from '@/components/dashboard/PublicQRCodeGenerator';
+import QRCodeManager from '@/components/dashboard/QRCodeManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
@@ -198,6 +200,16 @@ const Dashboard = () => {
                   </li>
                   <li>
                     <Button 
+                      variant={activeTab === 'qr-codes' ? 'default' : 'ghost'}
+                      className="w-full justify-start"
+                      onClick={() => setActiveTab('qr-codes')}
+                    >
+                      <QrCode className="mr-2 h-5 w-5" />
+                      QR Codes
+                    </Button>
+                  </li>
+                  <li>
+                    <Button 
                       variant={activeTab === 'public-qr' ? 'default' : 'ghost'}
                       className="w-full justify-start"
                       onClick={() => setActiveTab('public-qr')}
@@ -232,7 +244,7 @@ const Dashboard = () => {
                       className="w-full justify-start"
                       onClick={() => setActiveTab('shared')}
                     >
-                      <QrCode className="mr-2 h-5 w-5" />
+                      <Share2 className="mr-2 h-5 w-5" />
                       Shared Access
                     </Button>
                   </li>
@@ -262,19 +274,19 @@ const Dashboard = () => {
             
             <div className="bg-medivault-50 rounded-xl mt-6 p-4 border border-medivault-100">
               <div className="flex items-start mb-2">
-                <Share2 className="h-5 w-5 text-medivault-600 mr-2 mt-0.5" />
-                <h3 className="font-medium text-medivault-900">Quick Record Sharing</h3>
+                <QrCode className="h-5 w-5 text-medivault-600 mr-2 mt-0.5" />
+                <h3 className="font-medium text-medivault-900">QR Code Management</h3>
               </div>
               <p className="text-sm text-medivault-700 mb-3">
-                Generate QR codes to share all your medical records securely with healthcare providers.
+                Manage all your QR codes for secure record sharing with healthcare providers.
               </p>
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="w-full text-medivault-700 border-medivault-200 hover:bg-medivault-100"
-                onClick={() => setActiveTab('public-qr')}
+                onClick={() => setActiveTab('qr-codes')}
               >
-                View Shared Records
+                Manage QR Codes
               </Button>
             </div>
           </div>
@@ -286,6 +298,7 @@ const Dashboard = () => {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-6">
                   <TabsTrigger value="records">Health Records</TabsTrigger>
+                  <TabsTrigger value="qr-codes">QR Codes</TabsTrigger>
                   <TabsTrigger value="public-qr">Public Sharing</TabsTrigger>
                   <TabsTrigger value="appointments">Appointments</TabsTrigger>
                   <TabsTrigger value="medications">Medications</TabsTrigger>
@@ -295,6 +308,12 @@ const Dashboard = () => {
                 
                 <TabsContent value="records">
                   <HealthRecordsList refreshTrigger={refreshTrigger} />
+                </TabsContent>
+                
+                <TabsContent value="qr-codes">
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <QRCodeManager />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="public-qr">
@@ -341,7 +360,7 @@ const Dashboard = () => {
                   <div className="bg-white rounded-xl shadow-md p-6">
                     <h2 className="text-xl font-semibold text-gray-800 mb-6">Shared Record Access</h2>
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                      <QrCode className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <Share2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No shared records</h3>
                       <p className="text-gray-600 mb-4">
                         You haven't shared any of your medical records yet.

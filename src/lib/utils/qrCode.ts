@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 // Generate a QR code for a health record
@@ -156,7 +155,7 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
   }
 };
 
-// Revoke a QR code
+// Revoke a QR code (and now also delete it)
 export const revokeQRCode = async (qrCodeId: string, userId: string) => {
   try {
     // Check if the user owns this QR code
@@ -172,20 +171,52 @@ export const revokeQRCode = async (qrCodeId: string, userId: string) => {
       throw new Error('QR code not found or you do not have permission to revoke it');
     }
     
-    // Update the QR code to revoke it
+    // Delete the QR code instead of just revoking it
     const { error } = await supabase
       .from('qr_codes')
-      .update({ is_revoked: true })
+      .delete()
       .eq('id', qrCodeId as string);
     
     if (error) {
-      console.error('Error revoking QR code:', error);
+      console.error('Error deleting QR code:', error);
       throw error;
     }
     
+    console.log('QR code deleted successfully:', qrCodeId);
+    
     return true;
   } catch (error) {
-    console.error('Error revoking QR code:', error);
+    console.error('Error revoking/deleting QR code:', error);
+    throw error;
+  }
+};
+
+// Get all QR codes for a user
+export const getUserQRCodes = async (userId: string) => {
+  try {
+    console.log('Fetching QR codes for user:', userId);
+    
+    const { data, error } = await supabase
+      .from('qr_codes')
+      .select(`
+        *,
+        health_records (
+          id,
+          title,
+          category
+        )
+      `)
+      .eq('created_by', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching user QR codes:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting user QR codes:', error);
     throw error;
   }
 };
