@@ -125,16 +125,19 @@ const QRCodeManager = () => {
     if (!user) return;
     
     try {
-      const result = await deleteQRCode(qrId, user.id);
+      await deleteQRCode(qrId, user.id);
       
-      if (result) {
-        setSingleQRCodes(prev => prev.filter(qr => qr.id !== qrId));
-        
-        toast({
-          title: 'QR code removed',
-          description: 'The QR code has been successfully removed.',
-        });
-      }
+      // Update local state to remove the deleted QR code
+      setSingleQRCodes(prev => prev.filter(qr => qr.id !== qrId));
+      
+      toast({
+        title: 'QR code removed',
+        description: 'The QR code has been successfully removed.',
+      });
+      
+      // Force refresh the list
+      handleRefresh();
+      
     } catch (error: any) {
       console.error('Error deleting QR code:', error);
       toast({
