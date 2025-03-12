@@ -14,14 +14,12 @@ import {
   Clock, 
   FileText,
   RefreshCw,
-  RotateCcw,
   Ban
 } from 'lucide-react';
 import { 
   getUserQRCodes, 
   revokeQRCode,
   deleteQRCode,
-  restoreQRCode,
   generateShareableLink,
   formatExpirationTime
 } from '@/lib/utils/qrCode';
@@ -142,42 +140,6 @@ const QRCodeManager = () => {
       toast({
         title: 'Failed to remove QR code',
         description: error.message || 'An error occurred while removing the QR code.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleRestoreQR = async (qrId: string) => {
-    if (!user) return;
-    
-    try {
-      const result = await restoreQRCode(qrId, user.id, 24);
-      
-      if (result) {
-        // Calculate the new expiry timestamp
-        const now = new Date();
-        const expiryDate = new Date(now);
-        expiryDate.setHours(expiryDate.getHours() + 24);
-        
-        setSingleQRCodes(prev => prev.map(qr => 
-          qr.id === qrId ? {
-            ...qr,
-            is_revoked: false,
-            expires_at: result.expires_at,
-            isExpired: false
-          } : qr
-        ));
-        
-        toast({
-          title: 'QR code restored',
-          description: 'The QR code has been successfully restored and will be valid for 24 hours.',
-        });
-      }
-    } catch (error: any) {
-      console.error('Error restoring QR code:', error);
-      toast({
-        title: 'Failed to restore QR code',
-        description: error.message || 'An error occurred while restoring the QR code.',
         variant: 'destructive',
       });
     }
@@ -319,27 +281,7 @@ const QRCodeManager = () => {
                               Download
                             </Button>
                             
-                            {qr.is_revoked ? (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleRestoreQR(qr.id)}
-                                className="text-green-600"
-                              >
-                                <RotateCcw className="h-3 w-3 mr-1" />
-                                Restore
-                              </Button>
-                            ) : qr.isExpired ? (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleRestoreQR(qr.id)}
-                                className="text-green-600"
-                              >
-                                <RotateCcw className="h-3 w-3 mr-1" />
-                                Renew
-                              </Button>
-                            ) : (
+                            {!qr.is_revoked && !qr.isExpired && (
                               <Button 
                                 size="sm" 
                                 variant="outline"

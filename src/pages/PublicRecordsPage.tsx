@@ -16,6 +16,7 @@ const PublicRecordsPage = () => {
         if (qrId) {
           setIsLoading(true);
           const valid = await isQRCodeValid(qrId);
+          console.log('QR code validity check result:', valid);
           setIsValid(valid);
         } else {
           setIsValid(false);
