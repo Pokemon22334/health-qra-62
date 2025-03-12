@@ -39,6 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
+  const [fetchAttempts, setFetchAttempts] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -93,6 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Fetching profile for user:', userId);
       setProfileFetchAttempted(true);
+      setFetchAttempts(prev => prev + 1);
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -109,57 +111,108 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // If no profile was found, create a basic one
       if (!profile) {
+        if (!user) {
+          throw new Error('User is undefined, cannot create profile');
+        }
+        
         const { user_metadata } = user || {};
         const name = user_metadata?.name || user_metadata?.full_name || 'User';
         
         try {
+          console.log('Creating new profile for user:', userId);
+          
           const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
-            .insert([{ id: userId, name, email: user.email, role: 'patient' }])
+            .insert([{ 
+              id: userId, 
+              name, 
+              email: user.email, 
+              role: 'patient' 
+            }])
             .select()
             .single();
             
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error('Error creating profile:', insertError.message);
+            throw insertError;
+          }
           
           console.log('Created new profile:', newProfile);
           setProfile(newProfile);
+          toast({
+            title: 'Profile created',
+            description: 'Your profile has been set up successfully.',
+          });
         } catch (createError: any) {
           console.error('Error creating profile:', createError.message);
-          // Continue with a basic profile object so the app doesn't get stuck
-          setProfile({ id: userId, name: 'User', email: user.email });
+          
+          // Even after a failed creation, set a basic profile to prevent app from getting stuck
+          const basicProfile = { id: userId, name: name || 'User', email: user.email, role: 'patient' };
+          setProfile(basicProfile);
+          
+          toast({
+            title: 'Profile setup issue',
+            description: 'We created a basic profile for you. Some features might be limited.',
+            variant: 'destructive',
+          });
         }
       } else {
         setProfile(profile);
       }
     } catch (error: any) {
       console.error('Error in fetchProfile:', error.message);
-      toast({
-        title: 'Error fetching profile',
-        description: error.message,
-        variant: 'destructive',
-      });
+      
       // Set a basic profile to prevent the app from getting stuck
-      setProfile({ id: userId, name: 'User' });
+      if (user) {
+        const basicProfile = { 
+          id: userId, 
+          name: user.user_metadata?.name || 'User', 
+          email: user.email, 
+          role: 'patient' 
+        };
+        setProfile(basicProfile);
+        
+        toast({
+          title: 'Profile loading issue',
+          description: 'Using a temporary profile while we resolve the issue.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const refreshProfile = async () => {
-    if (user) {
+    if (!user) {
+      console.error('Cannot refresh profile: No user logged in');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
       await fetchProfile(user.id);
+      return true;
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      setIsLoading(false);
+      return false;
     }
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; requires2FA?: boolean }> => {
     try {
+      setIsLoading(true);
+      console.log('Login initiated with:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
-
+      
+      // Session is handled by the auth state change listener
       return { success: true };
     } catch (error: any) {
       console.error('Login error:', error.message);
@@ -168,12 +221,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message,
         variant: 'destructive',
       });
+      setIsLoading(false);
       return { success: false };
     }
   };
 
   const signup = async (fullName: string, email: string, password: string): Promise<boolean> => {
     try {
+      setIsLoading(true);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -191,6 +247,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: 'Please check your email to verify your account.',
       });
 
+      setIsLoading(false);
       return true;
     } catch (error: any) {
       console.error('Signup error:', error.message);
@@ -199,12 +256,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message,
         variant: 'destructive',
       });
+      setIsLoading(false);
       return false;
     }
   };
 
   const signOut = async () => {
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -218,6 +277,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
