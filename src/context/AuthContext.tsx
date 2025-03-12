@@ -59,7 +59,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               !currentPath.includes('/features') &&
               !currentPath.includes('/about') &&
               !currentPath.includes('/get-started') &&
-              !currentPath.includes('/emergency-access')) {
+              !currentPath.includes('/emergency-access') &&
+              !currentPath.includes('/live-profile')) {
             navigate('/login');
           }
         }
