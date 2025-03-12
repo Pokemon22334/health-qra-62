@@ -78,23 +78,13 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
 // Get a public QR code by ID
 export const getPublicQRCodeById = async (qrId: string) => {
   try {
-    console.log('Getting public QR code by ID:', qrId);
-    
     const { data, error } = await supabase
       .from('public_qr_codes')
       .select('*')
       .eq('id', qrId)
-      .maybeSingle(); // Using maybeSingle instead of single to avoid error if no record found
+      .single();
     
-    if (error) {
-      console.error('Error fetching QR code:', error);
-      throw error;
-    }
-    
-    if (!data) {
-      console.error('No QR code found with ID:', qrId);
-      throw new Error('QR code not found');
-    }
+    if (error) throw error;
     
     return data;
   } catch (error) {
@@ -106,29 +96,20 @@ export const getPublicQRCodeById = async (qrId: string) => {
 // Get all records shared via a public QR code
 export const getPublicRecordsByQRId = async (qrId: string) => {
   try {
-    console.log('Getting public records by QR ID:', qrId);
-    
     // First verify the QR code is active and not expired
     const { data: qrCode, error: qrError } = await supabase
       .from('public_qr_codes')
       .select('*')
       .eq('id', qrId)
       .eq('is_active', true)
-      .maybeSingle(); // Using maybeSingle instead of single
+      .single();
     
-    if (qrError) {
-      console.error('Error checking QR code:', qrError);
-      throw qrError;
-    }
-    
-    if (!qrCode) {
-      console.error('QR code not found or inactive:', qrId);
+    if (qrError || !qrCode) {
       throw new Error('QR code not found or inactive');
     }
     
     // Check expiration
     if (qrCode.expires_at && new Date(qrCode.expires_at) < new Date()) {
-      console.error('QR code has expired:', qrId);
       throw new Error('QR code has expired');
     }
     
@@ -138,13 +119,9 @@ export const getPublicRecordsByQRId = async (qrId: string) => {
       .select('record_id')
       .eq('qr_id', qrId);
     
-    if (linkError) {
-      console.error('Error fetching public record links:', linkError);
-      throw linkError;
-    }
+    if (linkError) throw linkError;
     
     if (!publicRecords || publicRecords.length === 0) {
-      console.log('No records found for QR code:', qrId);
       return [];
     }
     
@@ -156,10 +133,7 @@ export const getPublicRecordsByQRId = async (qrId: string) => {
       .in('id', recordIds)
       .order('created_at', { ascending: false });
     
-    if (recordsError) {
-      console.error('Error fetching health records:', recordsError);
-      throw recordsError;
-    }
+    if (recordsError) throw recordsError;
     
     return records || [];
   } catch (error) {
