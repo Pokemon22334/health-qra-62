@@ -50,7 +50,6 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
     }
   };
 
-  // Add the upload health record function
   const uploadHealthRecord = async (
     file: File,
     title: string,
@@ -65,8 +64,22 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       setIsLoading(true);
       console.log('Uploading file to storage bucket:', file.name);
       
-      // First, upload the file to storage - ensure the folder structure is correct
+      // Create folder structure with user ID
       const fileName = `${user.id}/${Date.now()}-${file.name}`;
+      
+      // First verify bucket exists
+      const { data: buckets, error: bucketsError } = await supabase
+        .storage
+        .listBuckets();
+        
+      console.log('Available buckets:', buckets);
+      
+      if (bucketsError) {
+        console.error('Error listing buckets:', bucketsError);
+        throw new Error(`Error accessing storage: ${bucketsError.message}`);
+      }
+
+      // Upload file to medical_records bucket
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('medical_records')
         .upload(fileName, file, {
@@ -111,7 +124,6 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       
       console.log('Record saved successfully:', recordData);
       
-      // Update local state
       setData(prevData => [recordData, ...prevData]);
       
       toast({

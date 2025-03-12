@@ -99,6 +99,26 @@ export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) =
       console.error('Record not found:', recordError);
       throw new Error('The requested medical record could not be found');
     }
+
+    // Verify the storage bucket exists and file is accessible
+    if (record.file_url) {
+      const bucketName = 'medical_records';
+      try {
+        // Test accessing the file
+        const { data: fileExists } = await supabase
+          .storage
+          .from(bucketName)
+          .createSignedUrl(record.file_url.split(`${bucketName}/`)[1], 60);
+        
+        if (!fileExists) {
+          console.warn('File not found in storage:', record.file_url);
+          record.file_url = null; // Clear invalid URL
+        }
+      } catch (fileError) {
+        console.error('Error verifying file access:', fileError);
+        record.file_url = null; // Clear invalid URL
+      }
+    }
     
     // Log the access
     if (accessorId) {
