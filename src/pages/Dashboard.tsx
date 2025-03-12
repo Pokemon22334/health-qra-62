@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -20,15 +19,14 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('records');
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [pageLoading, setPageLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
-
+  
   // Better handling of authentication state
   useEffect(() => {
     console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user });
@@ -44,7 +42,6 @@ const Dashboard = () => {
         navigate('/login');
       } else {
         setPageLoading(false);
-        setProfile(user);
       }
     }
   }, [isLoading, isAuthenticated, navigate, toast, user]);

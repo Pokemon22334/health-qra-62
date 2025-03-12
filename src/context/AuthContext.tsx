@@ -60,6 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Initial session check and auth state change listener
   useEffect(() => {
+    console.log('Setting up auth state change listener');
+    
     const initializeAuth = async () => {
       setIsLoading(true);
       console.log('Initializing auth...');
@@ -91,13 +93,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session);
-        setSession(session);
-        setUser(session?.user ?? null);
         
-        if (session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          setProfile(profile);
-        } else {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            const profile = await fetchProfile(session.user.id);
+            setProfile(profile);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
           setProfile(null);
         }
         
@@ -106,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
     
     return () => {
+      console.log('Cleaning up auth listener');
       subscription.unsubscribe();
     };
   }, []);
