@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, FileText, Download, Calendar, AlertTriangle } from 'lucide-react';
+import { Loader2, FileText, Download, Calendar, AlertTriangle, RefreshCw } from 'lucide-react';
 import { getPublicRecordsByQRId, getPublicQRCodeById } from '@/lib/utils/publicQrCode';
+import { useToast } from '@/hooks/use-toast';
 
 const PublicRecordsList = () => {
   const { qrId } = useParams<{ qrId: string }>();
@@ -12,35 +13,53 @@ const PublicRecordsList = () => {
   const [qrCode, setQrCode] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchRecords = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        if (!qrId) {
-          setError('Invalid QR code');
-          return;
-        }
-        
-        // Get QR code details
-        const qrCodeData = await getPublicQRCodeById(qrId);
-        setQrCode(qrCodeData);
-        
-        // Get associated records
-        const recordsData = await getPublicRecordsByQRId(qrId);
-        setRecords(recordsData);
-      } catch (error: any) {
-        console.error('Error fetching public records:', error);
-        setError(error.message || 'Failed to load records');
-      } finally {
-        setLoading(false);
+  const fetchRecords = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (!qrId) {
+        setError('Invalid QR code ID');
+        return;
       }
-    };
-    
+      
+      console.log('Fetching data for QR ID:', qrId);
+      
+      // Get QR code details
+      const qrCodeData = await getPublicQRCodeById(qrId);
+      console.log('QR code data retrieved:', qrCodeData);
+      setQrCode(qrCodeData);
+      
+      // Get associated records
+      const recordsData = await getPublicRecordsByQRId(qrId);
+      console.log('Records retrieved:', recordsData?.length || 0);
+      setRecords(recordsData || []);
+    } catch (error: any) {
+      console.error('Error fetching public records:', error);
+      setError(error.message || 'Failed to load records');
+      
+      toast({
+        title: 'Error loading records',
+        description: error.message || 'Could not load the shared medical records',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+      setIsRetrying(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchRecords();
   }, [qrId]);
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    fetchRecords();
+  };
 
   const handleDownload = (fileUrl: string) => {
     window.open(fileUrl, '_blank');
@@ -61,7 +80,7 @@ const PublicRecordsList = () => {
     }
   };
 
-  if (loading) {
+  if (loading || isRetrying) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
         <Loader2 className="h-8 w-8 animate-spin text-medivault-600 mr-2" />
@@ -76,6 +95,15 @@ const PublicRecordsList = () => {
         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-red-800 mb-2">Access Error</h3>
         <p className="text-red-600 mb-4">{error}</p>
+        <Button 
+          variant="outline" 
+          onClick={handleRetry} 
+          className="mt-2"
+          disabled={isRetrying}
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Try Again
+        </Button>
       </div>
     );
   }
