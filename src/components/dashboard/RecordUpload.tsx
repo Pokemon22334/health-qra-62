@@ -1,4 +1,6 @@
+
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +16,9 @@ import { FilePlus, Upload, Loader2 } from 'lucide-react';
 import { useHealthRecords } from '@/hooks/use-health-records';
 
 const RecordUpload = ({ onUploadComplete }: { onUploadComplete?: () => void }) => {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const { uploadHealthRecord, isLoading } = useHealthRecords();
+  const { uploadHealthRecord, isLoading } = useHealthRecords(user?.id);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<'blood_test' | 'xray_mri' | 'prescription' | 'doctor_note' | 'other'>('other');

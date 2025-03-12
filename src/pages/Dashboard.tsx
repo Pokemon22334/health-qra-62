@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -72,15 +71,12 @@ const Dashboard = () => {
     
     try {
       console.log('Manually refreshing profile');
-      const result = await refreshProfile();
+      await refreshProfile();
       
-      if (!result) {
-        toast({
-          title: "Profile refresh failed",
-          description: "We're having trouble loading your profile. Please try again later.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Profile refresh complete",
+        description: "Your profile has been refreshed.",
+      });
     } catch (error) {
       console.error('Error refreshing profile:', error);
       toast({
@@ -142,7 +138,6 @@ const Dashboard = () => {
     );
   }
 
-  // If user is authenticated but profile is missing
   if (user && !profile) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -176,7 +171,6 @@ const Dashboard = () => {
     );
   }
 
-  // Create a fallback profile if for some reason profile is still null
   const displayProfile = profile || { 
     name: user?.user_metadata?.name || user?.user_metadata?.full_name || 'User',
     role: 'patient'

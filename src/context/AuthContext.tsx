@@ -183,7 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = async (): Promise<void> => {
     if (!user) {
       console.error('Cannot refresh profile: No user logged in');
       return;
@@ -192,11 +192,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       await fetchProfile(user.id);
-      return true;
     } catch (error) {
       console.error('Error refreshing profile:', error);
+    } finally {
       setIsLoading(false);
-      return false;
     }
   };
 

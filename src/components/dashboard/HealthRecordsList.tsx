@@ -128,7 +128,11 @@ const HealthRecordsList = ({ refreshTrigger = 0 }: HealthRecordsListProps) => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {records.map((record) => (
-          <RecordCard key={record.id} record={record} onUpdate={handleRetry} />
+          <RecordCard 
+            key={record.id} 
+            record={record} 
+            onUpdate={handleRetry} 
+          />
         ))}
       </div>
     </div>

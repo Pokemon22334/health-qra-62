@@ -7,30 +7,32 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-type RecordType = 'bloodTest' | 'prescription' | 'imaging' | 'doctorNote' | 'other';
-
-type RecordCardProps = {
+interface RecordProps {
+  id: string;
   title: string;
-  date: Date;
-  doctor?: string;
-  institution?: string;
-  type: RecordType;
-  fileSize?: string;
-  className?: string;
-  onView?: () => void;
-  onDownload?: () => void;
-  onDelete?: () => void;
-};
+  description?: string;
+  category: string;
+  file_url: string;
+  created_at: string;
+  user_id: string;
+  [key: string]: any; // Allow other properties
+}
 
-const getTypeInfo = (type: RecordType) => {
-  switch (type) {
-    case 'bloodTest':
+interface RecordCardProps {
+  record: RecordProps;
+  onUpdate?: () => void;
+  className?: string;
+}
+
+const getTypeInfo = (category: string) => {
+  switch (category) {
+    case 'blood_test':
       return { icon: FileText, color: 'text-red-500', bg: 'bg-red-50' };
     case 'prescription':
       return { icon: File, color: 'text-emerald-500', bg: 'bg-emerald-50' };
-    case 'imaging':
+    case 'xray_mri':
       return { icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-50' };
-    case 'doctorNote':
+    case 'doctor_note':
       return { icon: FileText, color: 'text-amber-500', bg: 'bg-amber-50' };
     default:
       return { icon: FileText, color: 'text-gray-500', bg: 'bg-gray-50' };
@@ -38,19 +40,41 @@ const getTypeInfo = (type: RecordType) => {
 };
 
 const RecordCard = ({ 
-  title, 
-  date, 
-  doctor, 
-  institution, 
-  type, 
-  fileSize = '1.2 MB',
+  record,
   className,
-  onView,
-  onDownload,
-  onDelete
+  onUpdate
 }: RecordCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { icon: TypeIcon, color, bg } = getTypeInfo(type);
+  const { icon: TypeIcon, color, bg } = getTypeInfo(record.category);
+  
+  // Format the date from string to Date object
+  const createdDate = new Date(record.created_at);
+  
+  const handleView = () => {
+    // Open record file in new tab
+    if (record.file_url) {
+      window.open(record.file_url, '_blank');
+    }
+  };
+  
+  const handleDownload = () => {
+    // Download file logic
+    if (record.file_url) {
+      const link = document.createElement('a');
+      link.href = record.file_url;
+      link.download = record.title || 'medical-record';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+  
+  const handleDelete = () => {
+    // Delete record logic (to be implemented)
+    console.log('Delete record:', record.id);
+    // After deletion, trigger update
+    if (onUpdate) onUpdate();
+  };
   
   return (
     <Card 
@@ -69,7 +93,7 @@ const RecordCard = ({
         
         <div className="flex-grow min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium text-gray-900 truncate">{title}</h3>
+            <h3 className="font-medium text-gray-900 truncate">{record.title}</h3>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -77,15 +101,15 @@ const RecordCard = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onView}>
+                <DropdownMenuItem onClick={handleView}>
                   <Eye className="mr-2 h-4 w-4" />
                   <span>View</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onDownload}>
+                <DropdownMenuItem onClick={handleDownload}>
                   <Download className="mr-2 h-4 w-4" />
                   <span>Download</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onDelete}>
+                <DropdownMenuItem onClick={handleDelete}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Delete</span>
                 </DropdownMenuItem>
@@ -95,27 +119,25 @@ const RecordCard = ({
           
           <div className="flex items-center text-sm text-gray-500 mt-1">
             <Calendar className="h-3.5 w-3.5 mr-1" />
-            <span>{format(date, 'MMM d, yyyy')}</span>
+            <span>{format(createdDate, 'MMM d, yyyy')}</span>
           </div>
           
-          {(doctor || institution) && (
+          {record.description && (
             <p className="text-xs text-gray-500 mt-1 truncate">
-              {doctor && <span>{doctor}</span>}
-              {doctor && institution && <span> • </span>}
-              {institution && <span>{institution}</span>}
+              {record.description}
             </p>
           )}
         </div>
       </div>
       
       <CardFooter className="py-2 px-4 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
-        <span>{fileSize}</span>
+        <span>{record.category.replace('_', ' ')}</span>
         <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
             size="sm" 
             className="h-7 px-2 text-xs" 
-            onClick={onView}
+            onClick={handleView}
           >
             <Eye className="h-3 w-3 mr-1" />
             View
@@ -124,7 +146,7 @@ const RecordCard = ({
             variant="ghost" 
             size="sm" 
             className="h-7 px-2 text-xs" 
-            onClick={onDownload}
+            onClick={handleDownload}
           >
             <Download className="h-3 w-3 mr-1" />
             Download
