@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { generateQRCode } from '@/lib/utils/qrCode';
+import { generateQRCode, deleteQRCode } from '@/lib/utils/qrCode';
 
 interface RecordProps {
   id: string;
@@ -57,6 +57,7 @@ const RecordCard = ({
   const [shareableUrl, setShareableUrl] = useState<string | null>(null);
   const [expiryHours, setExpiryHours] = useState<number>(24);
   const [qrGenerating, setQrGenerating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { icon: TypeIcon, color, bg } = getTypeInfo(record.category);
   const { toast } = useToast();
@@ -149,9 +150,35 @@ const RecordCard = ({
     }
   };
   
-  const handleDelete = () => {
-    console.log('Delete record:', record.id);
-    if (onUpdate) onUpdate();
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      console.log('Deleting QR code:', record.id);
+      
+      if (!record.user_id) {
+        throw new Error('User ID is missing');
+      }
+      
+      await deleteQRCode(record.id, record.user_id);
+      
+      toast({
+        title: "Success",
+        description: "QR code deleted successfully",
+      });
+      
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error: any) {
+      console.error('Error deleting QR code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete QR code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
   
   const handleGenerateQR = async () => {
@@ -258,9 +285,13 @@ const RecordCard = ({
                     <QrCode className="mr-2 h-4 w-4" />
                     <span>Generate QR Code</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDelete}>
+                  <DropdownMenuItem 
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="text-red-600 focus:text-red-600"
+                  >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Delete</span>
+                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
