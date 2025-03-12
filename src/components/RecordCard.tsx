@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { deleteQRCode } from '@/lib/utils/qrCode';
 
 interface RecordProps {
   id: string;
@@ -154,11 +153,20 @@ const RecordCard = ({
       
       if (qrCodes && qrCodes.length > 0) {
         // Track success/failure for each deletion
-        const deletionPromises = qrCodes.map(qrCode => 
-          deleteQRCode(qrCode.id, record.user_id)
-            .then(() => ({ id: qrCode.id, success: true }))
-            .catch(error => ({ id: qrCode.id, success: false, error }))
-        );
+        const deletionPromises = qrCodes.map(async qrCode => {
+          try {
+            // Update the QR code to mark it as revoked instead of deleting
+            const { error } = await supabase
+              .from('qr_codes')
+              .update({ is_revoked: true })
+              .eq('id', qrCode.id)
+              .eq('created_by', record.user_id);
+              
+            return { id: qrCode.id, success: !error };
+          } catch (error) {
+            return { id: qrCode.id, success: false, error };
+          }
+        });
         
         const results = await Promise.all(deletionPromises);
         const successCount = results.filter(r => r.success).length;
@@ -166,12 +174,12 @@ const RecordCard = ({
         if (successCount === qrCodes.length) {
           toast({
             title: "Success",
-            description: `Deleted ${successCount} QR code${successCount !== 1 ? 's' : ''}`,
+            description: `Revoked ${successCount} QR code${successCount !== 1 ? 's' : ''}`,
           });
         } else {
           toast({
             title: "Partial Success",
-            description: `Deleted ${successCount} of ${qrCodes.length} QR codes`,
+            description: `Revoked ${successCount} of ${qrCodes.length} QR codes`,
             variant: "destructive",
           });
         }
@@ -186,10 +194,10 @@ const RecordCard = ({
         onUpdate();
       }
     } catch (error: any) {
-      console.error('Error deleting QR code:', error);
+      console.error('Error revoking QR codes:', error);
       toast({
         title: "Error",
-        description: "Failed to delete QR code. Please try again.",
+        description: "Failed to revoke QR codes. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -291,3 +299,4 @@ const RecordCard = ({
 };
 
 export default RecordCard;
+

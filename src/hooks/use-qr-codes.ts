@@ -1,9 +1,7 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { generateQRCode, revokeQRCode } from '@/lib/utils/qrCode';
 
 export const useQRCodes = () => {
   const { user } = useAuth();
@@ -19,14 +17,28 @@ export const useQRCodes = () => {
         throw new Error('You must be logged in to generate QR codes');
       }
       
-      const result = await generateQRCode(recordId, user.id, expiryHours);
+      // Calculate expiry date
+      const expiryDate = new Date();
+      expiryDate.setHours(expiryDate.getHours() + expiryHours);
+      
+      const { data: qrCode, error } = await supabase
+        .from('qr_codes')
+        .insert({
+          record_id: recordId,
+          created_by: user.id,
+          expires_at: expiryDate.toISOString()
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
       
       toast({
         title: 'QR code generated successfully',
         description: 'You can now share this QR code with your healthcare provider.',
       });
       
-      return result;
+      return qrCode;
     } catch (error: any) {
       toast({
         title: 'Failed to generate QR code',
