@@ -45,6 +45,8 @@ const LiveProfilePage = () => {
         setIsLoading(true);
         setError(null);
         
+        console.log('Fetching data for permanent QR with ID:', id);
+        
         // Get the permanent QR code data
         const { data: qrData, error: qrError } = await supabase
           .from('user_permanent_qr')
@@ -53,14 +55,19 @@ const LiveProfilePage = () => {
           .eq('active', true)
           .maybeSingle();
         
-        if (qrError) throw qrError;
+        if (qrError) {
+          console.error('Error fetching QR data:', qrError);
+          throw qrError;
+        }
         
         if (!qrData) {
+          console.error('No QR data found or QR is inactive');
           setError('This QR code is invalid or has been deactivated');
           setIsLoading(false);
           return;
         }
         
+        console.log('Found QR data:', qrData);
         setProfileData(qrData);
         
         // Get user profile data
@@ -70,7 +77,10 @@ const LiveProfilePage = () => {
           .eq('id', qrData.user_id)
           .maybeSingle();
         
-        if (!userError && userData) {
+        if (userError) {
+          console.error('Error fetching user profile:', userError);
+        } else if (userData) {
+          console.log('Found user profile:', userData);
           setUserProfile(userData);
         }
         
@@ -81,7 +91,12 @@ const LiveProfilePage = () => {
           .eq('user_id', qrData.user_id)
           .order('created_at', { ascending: false });
         
-        if (recordsError) throw recordsError;
+        if (recordsError) {
+          console.error('Error fetching health records:', recordsError);
+          throw recordsError;
+        }
+        
+        console.log('Fetched records:', recordsData?.length || 0);
         setRecords(recordsData || []);
         
         // Get medications
@@ -91,7 +106,12 @@ const LiveProfilePage = () => {
           .eq('user_id', qrData.user_id)
           .order('created_at', { ascending: false });
         
-        if (medsError) throw medsError;
+        if (medsError) {
+          console.error('Error fetching medications:', medsError);
+          throw medsError;
+        }
+        
+        console.log('Fetched medications:', medsData?.length || 0);
         setMedications(medsData || []);
         
         // Get emergency profile
@@ -101,7 +121,10 @@ const LiveProfilePage = () => {
           .eq('user_id', qrData.user_id)
           .maybeSingle();
         
-        if (!emergencyError && emergencyData) {
+        if (emergencyError) {
+          console.error('Error fetching emergency profile:', emergencyError);
+        } else if (emergencyData) {
+          console.log('Found emergency profile');
           setEmergencyProfile(emergencyData);
         }
         
@@ -113,6 +136,8 @@ const LiveProfilePage = () => {
               profile_id: qrData.id,
               ip_address: null
             });
+            
+          console.log('Access logged successfully');
         } catch (logError) {
           console.error('Failed to log access:', logError);
           // Non-critical error, just continue
