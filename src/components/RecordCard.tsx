@@ -153,18 +153,32 @@ const RecordCard = ({
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      console.log('Deleting QR code:', record.id);
+      console.log('Deleting QR code for record:', record.id);
       
-      if (!record.user_id) {
-        throw new Error('User ID is missing');
+      const { data: qrCodes, error: fetchError } = await supabase
+        .from('qr_codes')
+        .select('*')
+        .eq('record_id', record.id);
+      
+      if (fetchError) {
+        throw fetchError;
       }
       
-      await deleteQRCode(record.id, record.user_id);
-      
-      toast({
-        title: "Success",
-        description: "QR code deleted successfully",
-      });
+      if (qrCodes && qrCodes.length > 0) {
+        for (const qrCode of qrCodes) {
+          await deleteQRCode(qrCode.id, record.user_id);
+        }
+        
+        toast({
+          title: "Success",
+          description: "QR code(s) deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Information",
+          description: "No QR codes found for this record",
+        });
+      }
       
       if (onUpdate) {
         onUpdate();
@@ -202,6 +216,10 @@ const RecordCard = ({
         title: "QR Code Generated",
         description: "The QR code for this record has been created successfully.",
       });
+      
+      if (onUpdate) {
+        onUpdate();
+      }
     } catch (error: any) {
       console.error('Error generating QR code:', error);
       toast({

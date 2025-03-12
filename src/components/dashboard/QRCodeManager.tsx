@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +49,10 @@ const QRCodeManager = () => {
         
         const individualCodes = await getUserQRCodes(user.id);
         setSingleQRCodes(individualCodes.map(qrCode => {
-          const isExpired = new Date(qrCode.expires_at) < new Date();
+          // Fix the expiration check to compare with the current time correctly
+          const expiryDate = new Date(qrCode.expires_at);
+          const isExpired = expiryDate < new Date();
+          
           const shareableUrl = generateShareableLink(qrCode.id);
           const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareableUrl)}`;
           
@@ -461,4 +465,3 @@ const QRCodeManager = () => {
 };
 
 export default QRCodeManager;
-
