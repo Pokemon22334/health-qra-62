@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, UserCircle, LogOut, FileText, QrCode, Home, Info, Settings, HeartPulse } from 'lucide-react';
+import { Menu, X, UserCircle, LogOut, FileText, QrCode, Settings, HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -76,9 +76,6 @@ const NavBar = () => {
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {profile?.name || 'MediVault User'}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate mt-1">
                       {user.email}
                     </p>
                   </div>
