@@ -36,16 +36,18 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
       }
 
       console.log("Login initiated with:", email);
-      // Use the login function from AuthContext to authenticate with Supabase
       const { success, requires2FA } = await login(email, password);
       
       if (success) {
         console.log("Login successful, redirecting...");
+        toast({
+          title: "Login successful",
+          description: "Note: Your session will expire when you close the browser.",
+        });
         onSuccessfulLogin(requires2FA);
       } else {
         setLoginAttempts(prev => prev + 1);
         
-        // Brute force protection
         if (loginAttempts >= 4) {
           setFormError("Too many failed attempts. Please try again later.");
           toast({
@@ -61,7 +63,6 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
     } catch (error: any) {
       console.error("Login error:", error);
       
-      // Special handling for API key errors
       if (error.message && error.message.includes("API key")) {
         setFormError("System authentication error. Please contact support.");
         toast({
@@ -87,6 +88,7 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-gray-800">Log In</h2>
         <p className="text-gray-600 mt-1">Access your medical records securely</p>
+        <p className="text-xs text-gray-500 mt-1">Note: You will need to log in every time you open the app</p>
       </div>
       
       {formError && (
@@ -166,6 +168,7 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Remember me on this device
+            <span className="text-xs text-gray-500 ml-1">(for this session only)</span>
           </label>
         </div>
         
