@@ -1,16 +1,20 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, Mail, User, Phone, Check, X } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, Phone, Check, X, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import SocialLogin from "@/components/auth/SocialLogin";
 import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
+import { useAuth } from "@/context/AuthContext";
 
 const SignupForm = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { signup, isLoading: authLoading } = useAuth();
+  
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -20,6 +24,7 @@ const SignupForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState("");
   
   const passwordsMatch = !confirmPassword || password === confirmPassword;
   
@@ -29,10 +34,12 @@ const SignupForm = () => {
   
   const isEmailValid = !email || validateEmail(email);
   
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
     
     if (!agreeToTerms) {
+      setFormError("You must agree to the terms and privacy policy");
       toast({
         title: "Please agree to terms",
         description: "You must agree to the terms and privacy policy",
@@ -42,6 +49,7 @@ const SignupForm = () => {
     }
     
     if (!passwordsMatch) {
+      setFormError("Passwords don't match");
       toast({
         title: "Passwords don't match",
         description: "Please make sure your passwords match",
@@ -52,19 +60,36 @@ const SignupForm = () => {
     
     setIsLoading(true);
     
-    // Simulate signup process
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Account created successfully!",
-        description: "Welcome to MediVault! Redirecting to setup your profile...",
-      });
+    try {
+      console.log("Signup initiated with:", email);
+      // Use the actual signup function from our auth context
+      const success = await signup(fullName, email, password);
       
-      // In a real app, we would redirect to onboarding or dashboard
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1500);
-    }, 2000);
+      if (success) {
+        console.log("Signup successful, redirecting...");
+        toast({
+          title: "Account created successfully!",
+          description: "Welcome to MediVault! Redirecting to your dashboard...",
+        });
+        
+        // Navigate to dashboard after successful signup
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1500);
+      } else {
+        setFormError("Failed to create account. Please try again.");
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      setFormError(error.message || "An error occurred during signup. Please try again.");
+      toast({
+        title: "Signup failed",
+        description: error.message || "An error occurred during signup. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -73,6 +98,13 @@ const SignupForm = () => {
         <h2 className="text-2xl font-semibold text-gray-800">Create Your Account</h2>
         <p className="text-gray-600 mt-1">Join thousands of users managing their health data</p>
       </div>
+      
+      {formError && (
+        <div className="mb-4 p-3 bg-red-50 rounded-md flex items-start space-x-2">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-red-700">{formError}</p>
+        </div>
+      )}
       
       <form onSubmit={handleSignup} className="space-y-4">
         <div className="space-y-1">
@@ -229,8 +261,8 @@ const SignupForm = () => {
           </label>
         </div>
         
-        <Button type="submit" className="w-full mt-6" disabled={isLoading || !isEmailValid || !passwordsMatch}>
-          {isLoading ? "Creating Account..." : "Create Account"}
+        <Button type="submit" className="w-full mt-6" disabled={isLoading || authLoading || !isEmailValid || !passwordsMatch}>
+          {isLoading || authLoading ? "Creating Account..." : "Create Account"}
         </Button>
       </form>
       

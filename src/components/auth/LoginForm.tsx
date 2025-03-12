@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock, Mail, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,30 +14,42 @@ interface LoginFormProps {
 }
 
 const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
+  const [formError, setFormError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setFormError("");
 
     try {
+      if (!email.trim() || !password.trim()) {
+        setFormError("Email and password are required");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Login initiated with:", email);
       // Use the login function from AuthContext to authenticate with Supabase
       const { success, requires2FA } = await login(email, password);
       
       if (success) {
+        console.log("Login successful, redirecting...");
         onSuccessfulLogin(requires2FA);
       } else {
         setLoginAttempts(prev => prev + 1);
         
         // Brute force protection
         if (loginAttempts >= 4) {
+          setFormError("Too many failed attempts. Please try again later.");
           toast({
             title: "Account temporarily locked",
             description: "Too many failed attempts. Please try again later.",
@@ -46,17 +58,14 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
           return;
         }
         
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password. Please try again.",
-          variant: "destructive",
-        });
+        setFormError("Invalid email or password. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      setFormError(error.message || "An error occurred during login. Please try again.");
       toast({
         title: "Login failed",
-        description: "An error occurred during login. Please try again.",
+        description: error.message || "An error occurred during login. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -70,6 +79,13 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
         <h2 className="text-2xl font-semibold text-gray-800">Log In</h2>
         <p className="text-gray-600 mt-1">Access your medical records securely</p>
       </div>
+      
+      {formError && (
+        <div className="mb-4 p-3 bg-red-50 rounded-md flex items-start space-x-2">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-red-700">{formError}</p>
+        </div>
+      )}
       
       <form onSubmit={handleLogin} className="space-y-5">
         <div className="space-y-1">
@@ -144,8 +160,8 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
           </label>
         </div>
         
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Log In"}
+        <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
+          {isLoading || authLoading ? "Logging in..." : "Log In"}
         </Button>
       </form>
       

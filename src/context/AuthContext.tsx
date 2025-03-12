@@ -79,6 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -101,13 +102,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log('Attempting login with:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
+      console.log('Login response:', data, error);
+      
       if (error) {
+        console.error('Login error:', error);
         toast({
           title: "Login failed",
           description: error.message,
@@ -117,8 +122,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       // In a real app with 2FA, we would check if 2FA is required
-      // For now, we'll simulate a 50% chance of requiring 2FA for demo purposes
-      const requires2FA = Math.random() > 0.5;
+      // We'll simplify and remove this for now to fix the login issue
+      const requires2FA = false;
       
       if (!requires2FA) {
         toast({
@@ -129,9 +134,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { success: true, requires2FA };
     } catch (error: any) {
+      console.error('Login exception:', error);
       toast({
         title: "Login failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       return { success: false };
@@ -175,7 +181,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (name: string, email: string, password: string, role: 'patient' | 'doctor' = 'patient') => {
     try {
       setIsLoading(true);
+      console.log('Attempting signup with:', email, role);
       
+      // Create the user in Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -187,13 +195,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
       });
       
+      console.log('Signup response:', data, error);
+      
       if (error) {
+        console.error('Signup error:', error);
         toast({
           title: "Signup failed",
           description: error.message,
           variant: "destructive",
         });
         return false;
+      }
+      
+      // For demo purposes, we'll create a profile record manually
+      // In production, this would typically be handled by a database trigger
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            name: name,
+            role: role
+          });
+          
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // We won't fail the signup if profile creation fails, just log it
+        }
       }
       
       toast({
@@ -203,9 +231,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return true;
     } catch (error: any) {
+      console.error('Signup exception:', error);
       toast({
         title: "Signup failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
       return false;
@@ -221,6 +250,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error('Logout error:', error);
         toast({
           title: "Logout failed",
           description: error.message,
@@ -238,9 +268,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "You have been logged out of MediVault.",
       });
     } catch (error: any) {
+      console.error('Logout exception:', error);
       toast({
         title: "Logout failed",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
