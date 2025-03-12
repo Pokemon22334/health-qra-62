@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -34,6 +35,7 @@ const Dashboard = () => {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [retryingProfile, setRetryingProfile] = useState(false);
+  const [forcedLoad, setForcedLoad] = useState(false);
   
   useEffect(() => {
     console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user, profile });
@@ -62,6 +64,19 @@ const Dashboard = () => {
     
     return () => clearTimeout(timeoutId);
   }, [isLoading, isAuthenticated, navigate, toast, user, profile, retryAttempt]);
+
+  // Add a force load timeout if we're stuck for too long
+  useEffect(() => {
+    const forceLoadTimeout = setTimeout(() => {
+      if ((isLoading || pageLoading) && retryAttempt >= 2) {
+        console.warn('Dashboard still not loaded after retries - forcing display');
+        setForcedLoad(true);
+        setPageLoading(false);
+      }
+    }, 15000); // 15 seconds - longer timeout for forcing
+    
+    return () => clearTimeout(forceLoadTimeout);
+  }, [isLoading, pageLoading, retryAttempt]);
   
   const handleRetry = async () => {
     setLoadingTimeout(false);
@@ -95,7 +110,7 @@ const Dashboard = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  if (isLoading || pageLoading) {
+  if ((isLoading || pageLoading) && !forcedLoad) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <NavBar />
@@ -138,39 +153,7 @@ const Dashboard = () => {
     );
   }
 
-  if (user && !profile) {
-    return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <NavBar />
-        <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
-          <div className="text-center bg-red-50 p-6 rounded-lg border border-red-200 max-w-md">
-            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-red-800 mb-2">Profile Not Found</h3>
-            <p className="text-sm text-red-700 mb-4">
-              We couldn't load your profile data. This might be a temporary issue.
-            </p>
-            <div className="flex justify-center">
-              <Button onClick={handleRetry} className="flex items-center" disabled={retryingProfile}>
-                {retryingProfile ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Retrying...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Retry Loading Profile
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
+  // If we have a user but no profile, we'll create a temporary profile display
   const displayProfile = profile || { 
     name: user?.user_metadata?.name || user?.user_metadata?.full_name || 'User',
     role: 'patient'
@@ -181,6 +164,40 @@ const Dashboard = () => {
       <NavBar />
       
       <main className="flex-grow container mx-auto px-4 py-8">
+        {/* If we had to force load or there's a profile issue, show a notification */}
+        {(forcedLoad || (!profile && user)) && (
+          <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-300">
+            <div className="flex items-start">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+              <div>
+                <h3 className="font-medium text-yellow-800">Profile Loading Issue</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  We're having trouble fully loading your profile data. Some features may be limited.
+                </p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="mt-2 text-yellow-800 border-yellow-300 hover:bg-yellow-100"
+                  onClick={handleRetry}
+                  disabled={retryingProfile}
+                >
+                  {retryingProfile ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      Retrying...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-2" />
+                      Retry Loading Profile
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
             Welcome, {displayProfile?.name || 'User'}
