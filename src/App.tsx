@@ -21,6 +21,8 @@ import PublicRecordsPage from '@/pages/PublicRecordsPage';
 import EmergencyProfile from '@/pages/EmergencyProfile';
 import EmergencyAccess from '@/pages/EmergencyAccess';
 import MedicationsPage from '@/pages/MedicationsPage';
+import LiveQRPage from '@/pages/LiveQRPage';
+import LiveProfilePage from '@/pages/LiveProfilePage';
 
 // Components
 import { Toaster } from '@/components/ui/toaster';
@@ -49,6 +51,8 @@ function App() {
             <Route path="/emergency-profile" element={<EmergencyProfile />} />
             <Route path="/emergency-access/:profileId" element={<EmergencyAccess />} />
             <Route path="/medications" element={<MedicationsPage />} />
+            <Route path="/live-qr" element={<LiveQRPage />} />
+            <Route path="/live-profile/:id" element={<LiveProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />

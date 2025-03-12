@@ -421,6 +421,30 @@ export type Database = {
           },
         ]
       }
+      user_permanent_qr: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          name: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -220,6 +221,16 @@ const Dashboard = () => {
                   </li>
                   <li>
                     <Button 
+                      variant={activeTab === 'live-qr' ? 'default' : 'ghost'}
+                      className="w-full justify-start"
+                      onClick={() => setActiveTab('live-qr')}
+                    >
+                      <QrCode className="mr-2 h-5 w-5 text-indigo-500" />
+                      Live QR Profile
+                    </Button>
+                  </li>
+                  <li>
+                    <Button 
                       variant="ghost"
                       className="w-full justify-start text-medivault-600"
                       onClick={() => navigate('/manage-qr')}
@@ -299,6 +310,24 @@ const Dashboard = () => {
                 Manage Emergency Profile
               </Button>
             </div>
+            
+            <div className="bg-indigo-50 rounded-xl mt-6 p-4 border border-indigo-100">
+              <div className="flex items-start mb-2">
+                <QrCode className="h-5 w-5 text-indigo-600 mr-2 mt-0.5" />
+                <h3 className="font-medium text-indigo-900">Live QR Profile</h3>
+              </div>
+              <p className="text-sm text-indigo-700 mb-3">
+                One permanent QR code that always shows your latest medical information.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                onClick={() => navigate('/live-qr')}
+              >
+                Manage Live QR
+              </Button>
+            </div>
           </div>
           
           <div className="lg:col-span-9">
@@ -310,6 +339,7 @@ const Dashboard = () => {
                   <TabsTrigger value="records">Health Records</TabsTrigger>
                   <TabsTrigger value="qr-codes">QR Codes</TabsTrigger>
                   <TabsTrigger value="public-qr">Public Sharing</TabsTrigger>
+                  <TabsTrigger value="live-qr">Live QR Profile</TabsTrigger>
                   <TabsTrigger value="appointments">Appointments</TabsTrigger>
                   <TabsTrigger value="medications">Medications</TabsTrigger>
                   <TabsTrigger value="shared">Shared Access</TabsTrigger>
@@ -329,6 +359,26 @@ const Dashboard = () => {
                 <TabsContent value="public-qr">
                   <div className="bg-white rounded-xl shadow-md p-6">
                     <PublicQRCodeGenerator />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="live-qr">
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <div className="text-center py-6">
+                      <QrCode className="h-16 w-16 text-indigo-500 mx-auto mb-4" />
+                      <h2 className="text-2xl font-semibold text-gray-900 mb-4">Live QR Medical Profile</h2>
+                      <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                        One permanent QR code that always shows your latest medical information. Whenever scanned, it displays 
+                        your most current records, medications, and emergency data.
+                      </p>
+                      <Button 
+                        size="lg"
+                        onClick={() => navigate('/live-qr')}
+                      >
+                        <QrCode className="mr-2 h-5 w-5" />
+                        Manage Live QR Profile
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
                 
