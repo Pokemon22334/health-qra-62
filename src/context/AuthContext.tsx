@@ -29,6 +29,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Fetch user profile data
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -40,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
       
+      console.log('Profile fetched successfully:', data);
       return data;
     } catch (error) {
       console.error('Profile fetch error:', error);
@@ -49,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshProfile = async () => {
     if (user) {
+      console.log('Refreshing profile for user:', user.id);
       const profile = await fetchProfile(user.id);
       setProfile(profile);
     }
@@ -58,20 +62,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
+      console.log('Initializing auth...');
       
-      // Check current session
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (session) {
-        setSession(session);
-        setUser(session.user);
+      try {
+        // Check current session
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        // Fetch user profile
-        const profile = await fetchProfile(session.user.id);
-        setProfile(profile);
+        console.log('Initial session check:', session ? 'Session found' : 'No session', error || '');
+        
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+          
+          // Fetch user profile
+          const profile = await fetchProfile(session.user.id);
+          setProfile(profile);
+        }
+      } catch (err) {
+        console.error('Error during auth initialization:', err);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
     
     initializeAuth();

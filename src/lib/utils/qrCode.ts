@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 // Generate a QR code for a health record
 export const generateQRCode = async (recordId: string, userId: string, expiryHours: number = 24) => {
   try {
+    console.log('Generating QR code for record:', recordId, 'by user:', userId);
+    
     // Calculate expiry time based on current time plus expiryHours
     const expiryDate = new Date();
     expiryDate.setHours(expiryDate.getHours() + expiryHours);
@@ -15,6 +17,7 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
         record_id: recordId,
         created_by: userId,
         expires_at: expiryDate.toISOString(),
+        is_revoked: false, // Explicitly set to false
       })
       .select()
       .single();
@@ -23,6 +26,8 @@ export const generateQRCode = async (recordId: string, userId: string, expiryHou
       console.error('Error creating QR code record:', error);
       throw error;
     }
+    
+    console.log('QR code created successfully:', data);
     
     // Generate a URL for this QR code
     const shareableUrl = generateShareableLink(data.id);
@@ -52,6 +57,10 @@ export const generateShareableLink = (qrCodeId: string): string => {
 export const getRecordByQRCode = async (qrCodeId: string, accessorId?: string) => {
   try {
     console.log('Fetching record for QR code:', qrCodeId);
+    
+    if (!qrCodeId) {
+      throw new Error('No QR code ID provided');
+    }
     
     // Get the QR code
     const { data: qrCode, error: qrError } = await supabase

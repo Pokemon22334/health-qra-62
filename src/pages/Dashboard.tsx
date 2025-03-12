@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -28,7 +29,11 @@ const Dashboard = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [profile, setProfile] = useState(null);
 
+  // Better handling of authentication state
   useEffect(() => {
+    console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user });
+    
+    // Only redirect if we're sure user is not authenticated (not still loading)
     if (!isLoading) {
       if (!isAuthenticated) {
         toast({
@@ -49,6 +54,7 @@ const Dashboard = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // Show loading state while authentication is being checked
   if (isLoading || pageLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
