@@ -19,10 +19,10 @@ const PublicRecordsPage = () => {
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow-md p-6 mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Shared Medical Records
+              Shared Medical Information
             </h1>
             <p className="text-gray-600 mb-4">
-              These medical records have been securely shared with you.
+              This medical information has been securely shared with you.
             </p>
             
             <PublicRecordsList />

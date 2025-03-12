@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 // Update the function signature to include emergency profile
@@ -186,58 +185,83 @@ export const getPublicRecordsByQRId = async (qrId: string) => {
       throw linkError;
     }
     
-    if (!publicRecords || publicRecords.length === 0) {
-      console.log('No records found for QR code:', qrId);
-      return [];
-    }
-    
     // Extract record IDs
-    const recordIds = publicRecords.map(record => record.record_id);
+    const recordIds = publicRecords?.map(record => record.record_id) || [];
     console.log('Found record IDs:', recordIds);
     
-    // Get the actual health records
-    const { data: records, error: recordsError } = await supabase
-      .from('health_records')
-      .select('*')
-      .in('id', recordIds)
-      .order('created_at', { ascending: false });
-    
-    if (recordsError) {
-      console.error('Error fetching health records:', recordsError);
-      throw recordsError;
-    }
-    
-    console.log('Successfully retrieved', records?.length || 0, 'records');
-    
-    // Ensure file URLs are publicly accessible
-    if (records && records.length > 0) {
-      // Process each record to ensure public URL access
-      for (let i = 0; i < records.length; i++) {
-        const record = records[i];
-        
-        // Check if file_url contains a supabase storage URL
-        if (record.file_url && record.file_url.includes('storage/v1/object/public')) {
-          // URL is already public, no need to modify
-          console.log('Record has public URL:', record.id);
-        } else if (record.file_url && record.file_url.includes('storage/v1/object/sign')) {
-          // Convert signed URL to public URL if needed
-          try {
-            const filePathMatch = record.file_url.match(/\/storage\/v1\/object\/sign\/([^?]+)/);
-            if (filePathMatch && filePathMatch[1]) {
-              const filePath = filePathMatch[1];
-              const publicUrl = supabase.storage.from('medical_records').getPublicUrl(filePath).data.publicUrl;
-              records[i] = { ...record, file_url: publicUrl };
-              console.log('Converted to public URL:', record.id);
+    let records = [];
+    if (recordIds.length > 0) {
+      // Get the actual health records
+      const { data: healthRecords, error: recordsError } = await supabase
+        .from('health_records')
+        .select('*')
+        .in('id', recordIds)
+        .order('created_at', { ascending: false });
+      
+      if (recordsError) {
+        console.error('Error fetching health records:', recordsError);
+        throw recordsError;
+      }
+      
+      records = healthRecords || [];
+      console.log('Successfully retrieved', records.length, 'records');
+      
+      // Ensure file URLs are publicly accessible
+      if (records.length > 0) {
+        // Process each record to ensure public URL access
+        for (let i = 0; i < records.length; i++) {
+          const record = records[i];
+          
+          // Check if file_url contains a supabase storage URL
+          if (record.file_url && record.file_url.includes('storage/v1/object/public')) {
+            // URL is already public, no need to modify
+            console.log('Record has public URL:', record.id);
+          } else if (record.file_url && record.file_url.includes('storage/v1/object/sign')) {
+            // Convert signed URL to public URL if needed
+            try {
+              const filePathMatch = record.file_url.match(/\/storage\/v1\/object\/sign\/([^?]+)/);
+              if (filePathMatch && filePathMatch[1]) {
+                const filePath = filePathMatch[1];
+                const publicUrl = supabase.storage.from('medical_records').getPublicUrl(filePath).data.publicUrl;
+                records[i] = { ...record, file_url: publicUrl };
+                console.log('Converted to public URL:', record.id);
+              }
+            } catch (urlError) {
+              console.error('Error converting to public URL:', urlError);
+              // Keep the original URL if conversion fails
             }
-          } catch (urlError) {
-            console.error('Error converting to public URL:', urlError);
-            // Keep the original URL if conversion fails
           }
         }
       }
     }
     
-    return records || [];
+    // Check if emergency profile is included
+    let emergencyProfile = null;
+    if (qrCode.include_emergency_profile) {
+      console.log('Fetching emergency profile for user:', qrCode.user_id);
+      
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('emergency_profiles')
+          .select('*')
+          .eq('user_id', qrCode.user_id)
+          .maybeSingle();
+          
+        if (profileError) {
+          console.error('Error fetching emergency profile:', profileError);
+        } else if (profile) {
+          emergencyProfile = profile;
+          console.log('Emergency profile found');
+        }
+      } catch (profileError) {
+        console.error('Exception fetching emergency profile:', profileError);
+      }
+    }
+    
+    return {
+      records: records || [],
+      emergencyProfile
+    };
   } catch (error) {
     console.error('Error getting public records by QR ID:', error);
     throw error;

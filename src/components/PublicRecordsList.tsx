@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, FileText, Download, Calendar, AlertTriangle } from 'lucide-react';
+import { Loader2, FileText, Download, Calendar, AlertTriangle, HeartPulse, Phone } from 'lucide-react';
 import { getPublicRecordsByQRId, getPublicQRCodeById } from '@/lib/utils/publicQrCode';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 const PublicRecordsList = () => {
   const { qrId } = useParams<{ qrId: string }>();
   const [records, setRecords] = useState<any[]>([]);
+  const [emergencyProfile, setEmergencyProfile] = useState<any>(null);
   const [qrCode, setQrCode] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,15 +69,23 @@ const PublicRecordsList = () => {
           return;
         }
         
-        // Get associated records
-        const recordsData = await getPublicRecordsByQRId(qrId);
-        console.log('Retrieved records:', recordsData);
-        setRecords(recordsData);
+        // Get associated records and emergency profile if included
+        const data = await getPublicRecordsByQRId(qrId);
         
-        if (recordsData.length === 0) {
+        if (data.records) {
+          console.log('Retrieved records:', data.records.length);
+          setRecords(data.records);
+        }
+        
+        if (data.emergencyProfile) {
+          console.log('Retrieved emergency profile');
+          setEmergencyProfile(data.emergencyProfile);
+        }
+        
+        if (data.records.length === 0 && !data.emergencyProfile) {
           toast({
-            title: 'No Records',
-            description: 'No medical records are associated with this QR code',
+            title: 'No Data',
+            description: 'No medical records or emergency profile are associated with this QR code',
           });
         }
       } catch (error: any) {
@@ -215,7 +224,7 @@ const PublicRecordsList = () => {
     );
   }
 
-  if (records.length === 0) {
+  if (records.length === 0 && !emergencyProfile) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
         <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -244,52 +253,127 @@ const PublicRecordsList = () => {
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {records.map((record) => (
-          <Card key={record.id} className="overflow-hidden hover:shadow-md transition-shadow">
-            <CardContent className="p-0">
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium text-gray-900 mr-2">{record.title}</h3>
-                  <span className={`px-2 py-1 text-xs rounded-full ${getCategoryBadgeClass(record.category)}`}>
-                    {record.category?.replace('_', ' ') || 'Unknown'}
-                  </span>
+      {emergencyProfile && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-red-800 flex items-center">
+              <HeartPulse className="h-5 w-5 mr-2 text-red-600" />
+              Emergency Medical Profile
+            </h2>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700"
+              onClick={() => window.open(`/emergency-access/${qrCode.user_id}`, '_blank')}
+            >
+              View Full Profile
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-md p-3 shadow-sm">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Critical Information</h3>
+              {emergencyProfile.blood_type && (
+                <div className="mb-2">
+                  <span className="text-xs text-gray-500">Blood Type:</span>
+                  <p className="font-medium">{emergencyProfile.blood_type}</p>
                 </div>
-                
-                <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-                  {record.description || 'No description provided'}
-                </p>
-                
-                <div className="flex items-center text-xs text-gray-500 mb-4">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>Added: {new Date(record.created_at).toLocaleDateString()}</span>
+              )}
+              {emergencyProfile.allergies && (
+                <div className="mb-2">
+                  <span className="text-xs text-gray-500">Allergies:</span>
+                  <p className="text-sm">{emergencyProfile.allergies}</p>
                 </div>
-              </div>
+              )}
+              {emergencyProfile.conditions && (
+                <div>
+                  <span className="text-xs text-gray-500">Medical Conditions:</span>
+                  <p className="text-sm">{emergencyProfile.conditions}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-white rounded-md p-3 shadow-sm">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Emergency Contacts</h3>
+              {emergencyProfile.emergency_contact_1_name ? (
+                <div className="mb-2">
+                  <p className="font-medium">{emergencyProfile.emergency_contact_1_name}</p>
+                  <p className="text-xs text-gray-500">{emergencyProfile.emergency_contact_1_relationship}</p>
+                  <p className="text-sm flex items-center">
+                    <Phone className="h-3 w-3 mr-1 text-gray-400" />
+                    {emergencyProfile.emergency_contact_1_phone}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No emergency contacts provided</p>
+              )}
               
-              <div className="border-t border-gray-100 bg-gray-50 p-3 flex justify-end">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => handleFileView(record.file_url, record.id)}
-                  disabled={!record.file_url || loadingFiles[record.id]}
-                >
-                  {loadingFiles[record.id] ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      View
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              {emergencyProfile.emergency_contact_2_name && (
+                <div>
+                  <p className="font-medium">{emergencyProfile.emergency_contact_2_name}</p>
+                  <p className="text-xs text-gray-500">{emergencyProfile.emergency_contact_2_relationship}</p>
+                  <p className="text-sm flex items-center">
+                    <Phone className="h-3 w-3 mr-1 text-gray-400" />
+                    {emergencyProfile.emergency_contact_2_phone}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {records.length > 0 && (
+        <>
+          <h3 className="text-lg font-medium text-gray-800 mb-3">Shared Medical Records</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {records.map((record) => (
+              <Card key={record.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <CardContent className="p-0">
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium text-gray-900 mr-2">{record.title}</h3>
+                      <span className={`px-2 py-1 text-xs rounded-full ${getCategoryBadgeClass(record.category)}`}>
+                        {record.category?.replace('_', ' ') || 'Unknown'}
+                      </span>
+                    </div>
+                    
+                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+                      {record.description || 'No description provided'}
+                    </p>
+                    
+                    <div className="flex items-center text-xs text-gray-500 mb-4">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      <span>Added: {new Date(record.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-gray-100 bg-gray-50 p-3 flex justify-end">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleFileView(record.file_url, record.id)}
+                      disabled={!record.file_url || loadingFiles[record.id]}
+                    >
+                      {loadingFiles[record.id] ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          View
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };

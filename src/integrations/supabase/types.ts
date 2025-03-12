@@ -217,6 +217,7 @@ export type Database = {
           created_at: string
           expires_at: string | null
           id: string
+          include_emergency_profile: boolean | null
           is_active: boolean | null
           label: string | null
           user_id: string
@@ -225,6 +226,7 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
+          include_emergency_profile?: boolean | null
           is_active?: boolean | null
           label?: string | null
           user_id: string
@@ -233,6 +235,7 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
+          include_emergency_profile?: boolean | null
           is_active?: boolean | null
           label?: string | null
           user_id?: string
