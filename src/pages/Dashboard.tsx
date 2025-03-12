@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -6,6 +7,7 @@ import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import RecordUpload from '@/components/dashboard/RecordUpload';
 import HealthRecordsList from '@/components/dashboard/HealthRecordsList';
+import PublicQRCodeGenerator from '@/components/dashboard/PublicQRCodeGenerator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
@@ -15,7 +17,8 @@ import {
   PillIcon, 
   QrCode,
   Shield,
-  Loader2
+  Loader2,
+  Share2
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -99,6 +102,16 @@ const Dashboard = () => {
                   </li>
                   <li>
                     <Button 
+                      variant={activeTab === 'public-qr' ? 'default' : 'ghost'}
+                      className="w-full justify-start"
+                      onClick={() => setActiveTab('public-qr')}
+                    >
+                      <Share2 className="mr-2 h-5 w-5" />
+                      Public Sharing
+                    </Button>
+                  </li>
+                  <li>
+                    <Button 
                       variant={activeTab === 'appointments' ? 'default' : 'ghost'}
                       className="w-full justify-start"
                       onClick={() => setActiveTab('appointments')}
@@ -153,17 +166,17 @@ const Dashboard = () => {
             
             <div className="bg-medivault-50 rounded-xl mt-6 p-4 border border-medivault-100">
               <div className="flex items-start mb-2">
-                <QrCode className="h-5 w-5 text-medivault-600 mr-2 mt-0.5" />
+                <Share2 className="h-5 w-5 text-medivault-600 mr-2 mt-0.5" />
                 <h3 className="font-medium text-medivault-900">Quick Record Sharing</h3>
               </div>
               <p className="text-sm text-medivault-700 mb-3">
-                Generate QR codes for any record to share securely with your healthcare providers.
+                Generate QR codes to share all your medical records securely with healthcare providers.
               </p>
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="w-full text-medivault-700 border-medivault-200 hover:bg-medivault-100"
-                onClick={() => setActiveTab('shared')}
+                onClick={() => setActiveTab('public-qr')}
               >
                 View Shared Records
               </Button>
@@ -177,6 +190,7 @@ const Dashboard = () => {
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-6">
                   <TabsTrigger value="records">Health Records</TabsTrigger>
+                  <TabsTrigger value="public-qr">Public Sharing</TabsTrigger>
                   <TabsTrigger value="appointments">Appointments</TabsTrigger>
                   <TabsTrigger value="medications">Medications</TabsTrigger>
                   <TabsTrigger value="shared">Shared Access</TabsTrigger>
@@ -185,6 +199,12 @@ const Dashboard = () => {
                 
                 <TabsContent value="records">
                   <HealthRecordsList refreshTrigger={refreshTrigger} />
+                </TabsContent>
+
+                <TabsContent value="public-qr">
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <PublicQRCodeGenerator />
+                  </div>
                 </TabsContent>
                 
                 <TabsContent value="appointments">

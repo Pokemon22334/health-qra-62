@@ -1,22 +1,22 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useHealthRecords } from '@/hooks/use-health-records';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, FileText, QrCode, Trash2, Eye, Download } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { Loader2, FileText, QrCode, Trash2, Eye, Download, AlertTriangle } from 'lucide-react';
 
 const HealthRecordsList = ({ refreshTrigger = 0 }) => {
   const { toast } = useToast();
   const { getHealthRecords, deleteHealthRecord, generateQRCodeForRecord, isLoading } = useHealthRecords();
   const [records, setRecords] = useState<any[]>([]);
   const [loadingRecords, setLoadingRecords] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [qrCodeData, setQrCodeData] = useState<any>(null);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [fetchAttempts, setFetchAttempts] = useState(0);
 
   useEffect(() => {
     fetchRecords();
@@ -25,10 +25,34 @@ const HealthRecordsList = ({ refreshTrigger = 0 }) => {
   const fetchRecords = async () => {
     try {
       setLoadingRecords(true);
-      const data = await getHealthRecords();
-      setRecords(data || []);
-    } catch (error) {
-      console.error('Error fetching records:', error);
+      setError(null);
+      
+      console.log('Fetching health records, attempt:', fetchAttempts + 1);
+      
+      // Implement retry logic
+      try {
+        const data = await getHealthRecords();
+        console.log('Records fetched successfully:', data?.length || 0);
+        setRecords(data || []);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error in fetchRecords:', err);
+        
+        // If this is not the first attempt, show error
+        if (fetchAttempts > 0) {
+          setError(err.message || 'Failed to load records. Please try refreshing the page.');
+          toast({
+            title: 'Error loading records',
+            description: err.message || 'Could not load your health records',
+            variant: 'destructive',
+          });
+        } else {
+          // Try once more
+          setFetchAttempts(prev => prev + 1);
+          setTimeout(fetchRecords, 1000); // Retry after 1 second
+          return; // Don't set loadingRecords to false yet
+        }
+      }
     } finally {
       setLoadingRecords(false);
     }
@@ -99,8 +123,28 @@ const HealthRecordsList = ({ refreshTrigger = 0 }) => {
   if (loadingRecords) {
     return (
       <div className="bg-white rounded-xl shadow-md p-6 flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-medivault-600" />
-        <span className="ml-2 text-gray-600">Loading records...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-medivault-600 mr-2" />
+        <span className="text-gray-600">Loading records...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="bg-red-50 rounded-lg p-6 flex items-start">
+          <AlertTriangle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Records</h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <Button onClick={() => {
+              setFetchAttempts(0);
+              fetchRecords();
+            }}>
+              Try Again
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -298,7 +342,8 @@ const HealthRecordsList = ({ refreshTrigger = 0 }) => {
                           alt={selectedRecord.title}
                           className="max-h-full max-w-full object-contain"
                           onError={(e) => {
-                            e.currentTarget.src = '/placeholder.svg';
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder.svg';
                           }}
                         />
                       )
