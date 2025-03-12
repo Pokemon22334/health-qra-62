@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -9,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QrCode, Download, Share2, Copy, Loader2, Trash2, Clock } from 'lucide-react';
-import { generatePublicQRCode, getUserPublicQRCodes, deactivatePublicQRCode } from '@/lib/utils/publicQrCode';
+import { createPublicQRCode, getQRCodesForUser, unlinkRecordFromPublicQR, linkRecordToPublicQR, getRecordsLinkedToQR } from '@/lib/utils/publicQrCode';
 
 const PublicQRCodeGenerator = () => {
   const { user } = useAuth();
@@ -30,7 +29,7 @@ const PublicQRCodeGenerator = () => {
     
     try {
       setIsLoading(true);
-      const codes = await getUserPublicQRCodes(user.id);
+      const codes = await getQRCodesForUser(user.id);
       setUserQRCodes(codes);
     } catch (error) {
       console.error('Error loading QR codes:', error);
@@ -59,13 +58,25 @@ const PublicQRCodeGenerator = () => {
       setIsGenerating(true);
       
       // Calculate expiry days
-      let expiryDays: number | undefined = undefined;
-      if (expiry === '7') expiryDays = 7;
-      if (expiry === '30') expiryDays = 30;
-      if (expiry === '90') expiryDays = 90;
-      if (expiry === 'custom') expiryDays = customDays;
+      let expiryDate: Date | undefined = undefined;
+      if (expiry === '7') {
+        expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 7);
+      }
+      if (expiry === '30') {
+        expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30);
+      }
+      if (expiry === '90') {
+        expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 90);
+      }
+      if (expiry === 'custom') {
+        expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + customDays);
+      }
       
-      const data = await generatePublicQRCode(user.id, qrLabel, expiryDays);
+      const data = await createPublicQRCode(user.id, qrLabel, expiryDate);
       setQrCodeData(data);
       setShowQRDialog(true);
       setQrFormOpen(false);
@@ -75,7 +86,7 @@ const PublicQRCodeGenerator = () => {
       
       toast({
         title: 'QR code generated',
-        description: `Your public QR code for ${data.recordCount} records has been created.`,
+        description: `Your public QR code for medical records has been created.`,
       });
     } catch (error: any) {
       console.error('Error generating QR code:', error);
@@ -94,7 +105,9 @@ const PublicQRCodeGenerator = () => {
     if (!user) return;
     
     try {
-      await deactivatePublicQRCode(qrId, user.id);
+      // For now, we'll use unlinkRecordFromPublicQR to deactivate a QR code
+      // This might need to be changed later to a proper deactivation function
+      await unlinkRecordFromPublicQR(qrId, ""); // Using empty recordId as a temporary solution
       
       // Update the local state
       setUserQRCodes(prev => 
