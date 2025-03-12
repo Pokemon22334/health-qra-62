@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock, Mail, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,6 @@ interface LoginFormProps {
 }
 
 const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { login, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
@@ -62,12 +60,23 @@ const LoginForm = ({ onSuccessfulLogin }: LoginFormProps) => {
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      setFormError(error.message || "An error occurred during login. Please try again.");
-      toast({
-        title: "Login failed",
-        description: error.message || "An error occurred during login. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Special handling for API key errors
+      if (error.message && error.message.includes("API key")) {
+        setFormError("System authentication error. Please contact support.");
+        toast({
+          title: "System Error",
+          description: "There's an issue with the authentication system. Please try again later or contact support.",
+          variant: "destructive",
+        });
+      } else {
+        setFormError(error.message || "An error occurred during login. Please try again.");
+        toast({
+          title: "Login failed",
+          description: error.message || "An error occurred during login. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
