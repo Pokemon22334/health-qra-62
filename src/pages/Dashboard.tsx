@@ -27,11 +27,9 @@ const Dashboard = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [pageLoading, setPageLoading] = useState(true);
   
-  // Better handling of authentication state
   useEffect(() => {
-    console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user });
+    console.log('Auth state in Dashboard:', { isLoading, isAuthenticated, user, profile });
     
-    // Only redirect if we're sure user is not authenticated (not still loading)
     if (!isLoading) {
       if (!isAuthenticated) {
         toast({
@@ -44,14 +42,13 @@ const Dashboard = () => {
         setPageLoading(false);
       }
     }
-  }, [isLoading, isAuthenticated, navigate, toast, user]);
+  }, [isLoading, isAuthenticated, navigate, toast, user, profile]);
 
   const handleUploadComplete = () => {
     setShowUploadForm(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Show loading state while authentication is being checked
   if (isLoading || pageLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -166,8 +163,9 @@ const Dashboard = () => {
                 variant="outline" 
                 size="sm" 
                 className="w-full text-medivault-700 border-medivault-200 hover:bg-medivault-100"
+                onClick={() => setActiveTab('shared')}
               >
-                Learn More
+                View Shared Records
               </Button>
             </div>
           </div>

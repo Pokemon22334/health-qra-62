@@ -265,8 +265,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
+      console.log('Attempting to log out');
       
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
         console.error('Logout error:', error);
@@ -278,6 +279,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
+      // Explicitly clear state
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -286,6 +288,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Logged out successfully",
         description: "You have been logged out of MediVault.",
       });
+      
+      console.log('Logout successful');
+      
+      // Force page reload to clear any cached state
+      window.location.href = '/';
     } catch (error: any) {
       console.error('Logout exception:', error);
       toast({

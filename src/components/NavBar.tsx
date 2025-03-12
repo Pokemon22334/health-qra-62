@@ -12,20 +12,36 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/');
+    try {
+      console.log('Logout button clicked');
+      await logout();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of MediVault.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      toast({
+        title: "Logout failed",
+        description: "An error occurred while logging out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
