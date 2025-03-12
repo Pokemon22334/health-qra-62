@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -220,6 +219,16 @@ const Dashboard = () => {
                   </li>
                   <li>
                     <Button 
+                      variant="ghost"
+                      className="w-full justify-start text-medivault-600"
+                      onClick={() => navigate('/manage-qr')}
+                    >
+                      <QrCode className="mr-2 h-5 w-5" />
+                      Manage QR Codes
+                    </Button>
+                  </li>
+                  <li>
+                    <Button 
                       variant={activeTab === 'appointments' ? 'default' : 'ghost'}
                       className="w-full justify-start"
                       onClick={() => setActiveTab('appointments')}
@@ -284,7 +293,7 @@ const Dashboard = () => {
                 variant="outline" 
                 size="sm" 
                 className="w-full text-medivault-700 border-medivault-200 hover:bg-medivault-100"
-                onClick={() => setActiveTab('qr-codes')}
+                onClick={() => navigate('/manage-qr')}
               >
                 Manage QR Codes
               </Button>

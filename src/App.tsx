@@ -16,6 +16,7 @@ import SharedRecord from './pages/SharedRecord';
 import SettingsPage from './pages/SettingsPage';
 import NotFound from './pages/NotFound';
 import PublicRecordsPage from './pages/PublicRecordsPage';
+import ManageQR from './pages/ManageQR';
 
 import './App.css';
 
@@ -35,6 +36,7 @@ function App() {
           <Route path="/shared-record/:id" element={<SharedRecord />} />
           <Route path="/public-records/:qrId" element={<PublicRecordsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/manage-qr" element={<ManageQR />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
