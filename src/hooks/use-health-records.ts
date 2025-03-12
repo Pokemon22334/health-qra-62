@@ -63,23 +63,31 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       }
       
       setIsLoading(true);
+      console.log('Uploading file to storage bucket:', file.name);
       
-      // First, upload the file to storage
+      // First, upload the file to storage - ensure the folder structure is correct
       const fileName = `${user.id}/${Date.now()}-${file.name}`;
       const { data: fileData, error: uploadError } = await supabase.storage
-        .from('health_records')
-        .upload(fileName, file);
+        .from('medical_records')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
         
       if (uploadError) {
+        console.error('Upload error details:', uploadError);
         throw new Error(`Error uploading file: ${uploadError.message}`);
       }
       
+      console.log('File uploaded successfully:', fileData?.path);
+      
       // Get public URL for the file
       const { data: publicUrlData } = supabase.storage
-        .from('health_records')
+        .from('medical_records')
         .getPublicUrl(fileName);
         
       const fileUrl = publicUrlData.publicUrl;
+      console.log('File public URL:', fileUrl);
       
       // Save record metadata to database
       const { data: recordData, error: recordError } = await supabase
@@ -97,8 +105,11 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
         .single();
         
       if (recordError) {
+        console.error('Record metadata error:', recordError);
         throw new Error(`Error saving record metadata: ${recordError.message}`);
       }
+      
+      console.log('Record saved successfully:', recordData);
       
       // Update local state
       setData(prevData => [recordData, ...prevData]);

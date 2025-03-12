@@ -13,12 +13,17 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     storageKey: 'medivault-auth-token',
   },
+  global: {
+    headers: {
+      'X-Client-Info': 'medivault-web'
+    },
+  },
 });
 
-// Listen for auth changes in other tabs/windows (if in browser)
+// Add debug listener for auth state changes (if in browser)
 if (typeof window !== 'undefined') {
   supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed:', event, session);
+    console.log('Auth state changed:', event, session ? 'User authenticated' : 'No session');
   });
 }
 

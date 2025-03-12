@@ -29,6 +29,8 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
       throw qrError;
     }
     
+    console.log('QR code created successfully:', qrCode);
+    
     // Get all health records for the user
     const { data: records, error: recordsError } = await supabase
       .from('health_records')
@@ -39,6 +41,8 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
       console.error('Error fetching user records:', recordsError);
       throw recordsError;
     }
+    
+    console.log('Found records to link to QR code:', records?.length || 0);
     
     // If user has records, link them to the QR code
     if (records && records.length > 0) {
@@ -57,6 +61,8 @@ export const generatePublicQRCode = async (userId: string, label?: string, expir
         console.error('Error linking records to QR code:', linkError);
         throw linkError;
       }
+      
+      console.log('Successfully linked records to QR code');
     }
     
     // Generate shareabe URL and QR code
