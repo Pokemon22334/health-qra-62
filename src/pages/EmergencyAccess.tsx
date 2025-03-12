@@ -32,7 +32,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 const EmergencyAccess = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { profileId } = useParams<{ profileId: string }>();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ const EmergencyAccess = () => {
   // Fetch emergency profile data
   useEffect(() => {
     const fetchEmergencyProfile = async () => {
-      if (!userId) {
+      if (!profileId) {
         setError('No user ID provided');
         setLoading(false);
         return;
@@ -55,7 +55,7 @@ const EmergencyAccess = () => {
         const { data, error } = await supabase
           .from('emergency_profiles')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', profileId)
           .single();
         
         if (error) {
@@ -97,7 +97,7 @@ const EmergencyAccess = () => {
     };
     
     fetchEmergencyProfile();
-  }, [userId]);
+  }, [profileId]);
 
   // Generate PDF of emergency profile
   const generatePDF = () => {

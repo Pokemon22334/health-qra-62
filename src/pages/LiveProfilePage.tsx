@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
   HeartPulse, 
   FileText, 
-  PillIcon, 
+  Pill, 
   Heart, 
   AlertTriangle, 
   Loader2, 
@@ -45,7 +44,6 @@ const LiveProfilePage = () => {
         setIsLoading(true);
         setError(null);
         
-        // First check if this QR code exists and is active
         const { data: qrData, error: qrError } = await supabase
           .from('user_permanent_qr')
           .select('*')
@@ -63,7 +61,6 @@ const LiveProfilePage = () => {
         
         setProfileData(qrData);
         
-        // Get user profile information
         const { data: userData, error: userError } = await supabase
           .from('profiles')
           .select('*')
@@ -74,7 +71,6 @@ const LiveProfilePage = () => {
           setUserProfile(userData);
         }
         
-        // Fetch health records
         const { data: recordsData, error: recordsError } = await supabase
           .from('health_records')
           .select('*')
@@ -84,7 +80,6 @@ const LiveProfilePage = () => {
         if (recordsError) throw recordsError;
         setRecords(recordsData || []);
         
-        // Fetch medications
         const { data: medsData, error: medsError } = await supabase
           .from('medications')
           .select('*')
@@ -94,7 +89,6 @@ const LiveProfilePage = () => {
         if (medsError) throw medsError;
         setMedications(medsData || []);
         
-        // Fetch emergency profile
         const { data: emergencyData, error: emergencyError } = await supabase
           .from('emergency_profiles')
           .select('*')
@@ -105,17 +99,15 @@ const LiveProfilePage = () => {
           setEmergencyProfile(emergencyData);
         }
         
-        // Log access (optional, for analytics)
         try {
           await supabase
             .from('emergency_access_logs')
             .insert({
               profile_id: qrData.id,
-              ip_address: null // Could get from a service if needed
+              ip_address: null
             });
         } catch (logError) {
           console.error('Failed to log access:', logError);
-          // Non-critical, so continue even if this fails
         }
       } catch (error: any) {
         console.error('Error fetching profile data:', error);
@@ -259,7 +251,7 @@ const LiveProfilePage = () => {
                     Records
                   </TabsTrigger>
                   <TabsTrigger value="medications">
-                    <PillIcon className="h-4 w-4 mr-2 text-green-500" />
+                    <Pill className="h-4 w-4 mr-2 text-green-500" />
                     Medications
                   </TabsTrigger>
                 </TabsList>
@@ -446,7 +438,7 @@ const LiveProfilePage = () => {
                               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                                 <div>
                                   <h4 className="font-medium text-gray-900 flex items-center">
-                                    <PillIcon className="h-4 w-4 text-green-600 mr-2" />
+                                    <Pill className="h-4 w-4 text-green-600 mr-2" />
                                     {med.name}
                                   </h4>
                                   <div className="text-sm text-gray-700 mt-1">
@@ -480,7 +472,7 @@ const LiveProfilePage = () => {
                     </div>
                   ) : (
                     <div className="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
-                      <PillIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <Pill className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                       <h3 className="text-lg font-medium text-gray-900 mb-1">No Medications</h3>
                       <p className="text-gray-500 text-sm">
                         No medications have been added to this profile yet.

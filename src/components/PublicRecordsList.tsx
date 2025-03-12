@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,6 @@ const PublicRecordsList = () => {
         
         console.log('Fetching records for QR ID:', qrId);
         
-        // Get QR code details
         const qrCodeData = await getPublicQRCodeById(qrId);
         setQrCode(qrCodeData);
         
@@ -45,7 +43,6 @@ const PublicRecordsList = () => {
           return;
         }
         
-        // Check if expired
         if (qrCodeData.expires_at) {
           const expiresAt = new Date(qrCodeData.expires_at);
           if (expiresAt < new Date()) {
@@ -69,7 +66,6 @@ const PublicRecordsList = () => {
           return;
         }
         
-        // Get associated records and emergency profile if included
         const data = await getPublicRecordsByQRId(qrId);
         
         if (data.records) {
@@ -108,24 +104,20 @@ const PublicRecordsList = () => {
     try {
       setLoadingFiles(prev => ({ ...prev, [recordId]: true }));
       
-      // Extract the file path from the URL
       let filePath;
       if (fileUrl.includes('storage/v1/object/public/medical_records/')) {
-        // Handle public URL format
         const parts = fileUrl.split('medical_records/');
         if (parts.length !== 2) {
           throw new Error('Invalid file URL format');
         }
         filePath = parts[1];
       } else if (fileUrl.includes('storage/v1/object/sign/medical_records/')) {
-        // Handle signed URL format
         const signedUrlMatch = fileUrl.match(/\/storage\/v1\/object\/sign\/medical_records\/([^?]+)/);
         if (!signedUrlMatch || !signedUrlMatch[1]) {
           throw new Error('Invalid signed URL format');
         }
         filePath = signedUrlMatch[1];
       } else {
-        // Fallback for other URL formats - direct attempt
         const parts = fileUrl.split('medical_records/');
         if (parts.length !== 2) {
           throw new Error('Could not parse file path from URL: ' + fileUrl);
@@ -135,7 +127,6 @@ const PublicRecordsList = () => {
       
       console.log('Attempting to get file with path:', filePath);
 
-      // Create a signed URL for secure access
       const { data, error } = await supabase.storage
         .from('medical_records')
         .createSignedUrl(filePath, 60);
@@ -172,7 +163,6 @@ const PublicRecordsList = () => {
       
       console.log('Attempting to view file with URL:', fileUrl);
       
-      // Get a signed URL and open the file
       const signedUrl = await getFileUrl(fileUrl, recordId);
       window.open(signedUrl, '_blank');
     } catch (err: any) {
