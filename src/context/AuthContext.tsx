@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -58,10 +57,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await fetchProfile(session.user.id);
         } else {
           setIsLoading(false);
+          // Redirect to login if no session
+          navigate('/login');
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
         setIsLoading(false);
+        navigate('/login');
       }
     };
     
@@ -78,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setProfile(null);
         setIsLoading(false);
+        navigate('/login');
       }
 
       if (event === 'SIGNED_OUT') {

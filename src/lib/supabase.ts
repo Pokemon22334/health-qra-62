@@ -8,7 +8,7 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 // Initialize the Supabase client with persistSession = false
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Changed from true to false
+    persistSession: false, // Session will not persist between page reloads
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'medivault-auth-token',
@@ -19,10 +19,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 if (typeof window !== 'undefined') {
   // Listen for auth changes in other tabs/windows
   supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed in another tab:', event, session);
-    
-    // We no longer need to update localStorage since we're not persisting the session
-    // The session will be cleared when the browser is closed or refreshed
+    console.log('Auth state changed:', event, session);
   });
 }
 
