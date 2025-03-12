@@ -16,47 +16,40 @@ const HealthRecordsList = ({ refreshTrigger = 0 }) => {
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [fetchAttempts, setFetchAttempts] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    fetchRecords();
-  }, [refreshTrigger]);
-
-  const fetchRecords = async () => {
-    try {
-      setLoadingRecords(true);
-      setError(null);
-      
-      console.log('Fetching health records, attempt:', fetchAttempts + 1);
-      
-      // Implement retry logic
+    const fetchRecords = async () => {
       try {
+        setLoadingRecords(true);
+        setError(null);
+        
+        console.log('Fetching health records, attempt:', retryCount + 1);
         const data = await getHealthRecords();
+        
         console.log('Records fetched successfully:', data?.length || 0);
         setRecords(data || []);
         setError(null);
       } catch (err: any) {
-        console.error('Error in fetchRecords:', err);
+        console.error('Error fetching records:', err);
+        setError(err.message || 'Failed to load records');
         
-        // If this is not the first attempt, show error
-        if (fetchAttempts > 0) {
-          setError(err.message || 'Failed to load records. Please try refreshing the page.');
-          toast({
-            title: 'Error loading records',
-            description: err.message || 'Could not load your health records',
-            variant: 'destructive',
-          });
-        } else {
-          // Try once more
-          setFetchAttempts(prev => prev + 1);
-          setTimeout(fetchRecords, 1000); // Retry after 1 second
-          return; // Don't set loadingRecords to false yet
+        // Retry logic for network errors
+        if (retryCount < 2) {
+          console.log('Retrying fetch...');
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => {
+            fetchRecords();
+          }, 1000); // Retry after 1 second
+          return;
         }
+      } finally {
+        setLoadingRecords(false);
       }
-    } finally {
-      setLoadingRecords(false);
-    }
-  };
+    };
+
+    fetchRecords();
+  }, [refreshTrigger, getHealthRecords, retryCount]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -122,9 +115,11 @@ const HealthRecordsList = ({ refreshTrigger = 0 }) => {
 
   if (loadingRecords) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6 flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-medivault-600 mr-2" />
-        <span className="text-gray-600">Loading records...</span>
+      <div className="bg-white rounded-xl shadow-md p-6 flex items-center justify-center min-h-[300px]">
+        <div className="flex flex-col items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-medivault-600 mb-4" />
+          <p className="text-gray-600">Loading your medical records...</p>
+        </div>
       </div>
     );
   }
@@ -132,18 +127,24 @@ const HealthRecordsList = ({ refreshTrigger = 0 }) => {
   if (error) {
     return (
       <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="bg-red-50 rounded-lg p-6 flex items-start">
-          <AlertTriangle className="h-6 w-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Records</h3>
-            <p className="text-red-700 mb-4">{error}</p>
-            <Button onClick={() => {
-              setFetchAttempts(0);
-              fetchRecords();
-            }}>
-              Try Again
-            </Button>
+        <div className="bg-red-50 rounded-lg p-6">
+          <div className="flex items-center">
+            <AlertTriangle className="h-6 w-6 text-red-500 mr-3" />
+            <div>
+              <h3 className="text-lg font-medium text-red-800">Error Loading Records</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
           </div>
+          <Button 
+            onClick={() => {
+              setRetryCount(0);
+              setError(null);
+              setLoadingRecords(true);
+            }}
+            className="mt-4"
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );

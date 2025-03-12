@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
@@ -13,11 +12,12 @@ export const useHealthRecords = () => {
   // Get all health records for the current user
   const getHealthRecords = async () => {
     try {
-      setIsLoading(true);
-      
       if (!user) {
         throw new Error('You must be logged in to access records');
       }
+
+      setIsLoading(true);
+      console.log('Fetching health records for user:', user.id);
       
       const { data, error } = await supabase
         .from('health_records')
@@ -26,6 +26,7 @@ export const useHealthRecords = () => {
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error('Error fetching records:', error);
         toast({
           title: 'Failed to fetch records',
           description: error.message,
@@ -34,10 +35,12 @@ export const useHealthRecords = () => {
         throw error;
       }
       
-      return data;
+      console.log('Fetched records:', data?.length || 0);
+      return data || [];
     } catch (error: any) {
+      console.error('Error in getHealthRecords:', error);
       toast({
-        title: 'Failed to fetch records',
+        title: 'Error loading records',
         description: error.message,
         variant: 'destructive',
       });
