@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +35,7 @@ const PublicQRCodeGenerator = () => {
   useEffect(() => {
     if (user && qrFormOpen) {
       checkEmergencyProfile();
+      fetchUserRecords();
     }
   }, [user, qrFormOpen]);
 
@@ -59,14 +61,20 @@ const PublicQRCodeGenerator = () => {
     
     try {
       setRecordsLoading(true);
+      console.log('Fetching records for user:', user.id);
+      
       const { data, error } = await supabase
         .from('health_records')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching records:', error);
+        throw error;
+      }
       
+      console.log('Fetched records count:', data?.length || 0);
       setUserRecords(data || []);
     } catch (error: any) {
       console.error('Error fetching records:', error);
@@ -224,7 +232,10 @@ const PublicQRCodeGenerator = () => {
         
         <Dialog open={qrFormOpen} onOpenChange={setQrFormOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => loadUserQRCodes()}>
+            <Button onClick={() => {
+              loadUserQRCodes();
+              fetchUserRecords();
+            }}>
               <QrCode className="h-4 w-4 mr-2" />
               Generate Public QR
             </Button>
