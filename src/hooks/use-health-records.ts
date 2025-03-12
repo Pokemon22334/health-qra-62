@@ -64,27 +64,30 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       setIsLoading(true);
       console.log('Uploading file to storage bucket:', file.name);
       
-      // Create folder structure with user ID
-      const fileName = `${user.id}/${Date.now()}-${file.name}`;
+      // Create folder structure with user ID and timestamp
+      const timestamp = Date.now();
+      const fileName = `${user.id}/${timestamp}-${file.name}`;
       
-      // First verify bucket exists
-      const { data: buckets, error: bucketsError } = await supabase
+      // Verify storage access and bucket existence
+      const { data: bucketInfo, error: storageError } = await supabase
         .storage
-        .listBuckets();
-        
-      console.log('Available buckets:', buckets);
-      
-      if (bucketsError) {
-        console.error('Error listing buckets:', bucketsError);
-        throw new Error(`Error accessing storage: ${bucketsError.message}`);
-      }
+        .getBucket('medical_records');
 
-      // Upload file to medical_records bucket
+      if (storageError) {
+        console.error('Storage access error:', storageError);
+        throw new Error(`Storage access error: ${storageError.message}`);
+      }
+      
+      console.log('Storage bucket verified:', bucketInfo);
+
+      // Upload file with specific options
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('medical_records')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          duplex: 'half',
+          contentType: file.type,
         });
         
       if (uploadError) {
@@ -94,10 +97,15 @@ export const useHealthRecords = (userId?: string, refreshTrigger: number = 0) =>
       
       console.log('File uploaded successfully:', fileData?.path);
       
-      // Get public URL for the file
+      // Get public URL with custom options
       const { data: publicUrlData } = supabase.storage
         .from('medical_records')
-        .getPublicUrl(fileName);
+        .getPublicUrl(fileName, {
+          download: true,
+          transform: {
+            quality: 80,
+          }
+        });
         
       const fileUrl = publicUrlData.publicUrl;
       console.log('File public URL:', fileUrl);
